@@ -13,14 +13,21 @@ library("tidyverse")
 
 Le risque $\alpha$ retenu sera de 0,05 & la puissance de 0,8.
 
-Vu le faible nombre de cas on ne fera pas d'hypothèse de normalité. Les variables numériques seront présentées par leur médiane avec les quartiles & comparées grâce au test non paramétrique de Wilcoxon. Les variables discrètes seront présentés en nombre avec le pourcentage. L'intervalle de confiance (à 95 %) sera calculé par bootstrap (package `boot` [@boot]). Le test du $\chi^2$ de Spearman sera utilisé sous réserve d'un effectif suffisant, à défaut le test exact de Fischer. Des graphiques seront réalisés pour les résultats importants (package `ggplot2` [@ggplot]).
-
-
-
 ## Taille de l'échantillon
 
+Parmi les cas suspects d’\gls{acg} inclus dans l’étude, les cas d'\gls{acg} positif et \gls{acg} négatif seront séparés et la mesure du marqueur diagnostique « \gls{dgno}) » sera réalisée pour chaque sujet et ce afin de calculer un intervalle de confiance unilatéral de 97,5 % pour la limite inférieure de l'aire sous la courbe ROC
+(\gls{auc}) du marqueur.
 
-Il s'agit d'une étude observationnelle simple pour lesquelles il est difficile de préciser un nombre de cas nécessaires en l'absence de test statistique. Néanmoins on peut estimer à environ quarante cas le strict minimum nécessaire pour avoir un échantillon utilisable s'il n'y a pas trop de données manquantes. 
+La valeur de l'\gls{auc} de l'échantillon est supposée être de 0,8 (bon marqueur).
+La méthode de calcul de l'erreur standard donnée par Hanley et McNeil (1982) sera
+utilisée pour calculer la limite de l'intervalle de confiance.
+
+Pour produire un intervalle de confiance avec une distance de l'\gls{auc} de 0,075 à la
+limite inférieure, le nombre de sujets nécessaires sera de 57 dans le groupe \gls{acg}
+positif et de 133 dans le groupe \gls{acg} négatif (prévalence de l’\gls{acg} positif parmi les cas suspects = 0,3) soit 190 patients au total.
+
+Un nombre important de patients a une atteint bilatérale, l’unité statistique sera l’œil et non pas le patient. Cela ne modifie pas l’effectif, ainsi la précision obtenue sera
+supérieure à celle du calcul d’effectif. Le modèle utilisé tiendra compte de la répétition des mesures (mesures non indépendantes, effet aléatoire).
 
 ## Données manquantes
 
@@ -28,35 +35,50 @@ Le décompte des données manquantes sera réalisé & présenté par un tableau 
 
 Après ce premier tri une imputation des données manquantes (package `missMDA` [@miss]) sera réalisée uniquement pour l'analyse factorielle & pour la recherche du meilleur modèle par step-by-tep descendant pour les analyses par régression (logistique ou linéaire). Néanmoins pour cette analyse, après choix du modèle, le calcul final sera fait avec les données réelles. 
 
-# Description de la population
 
-## Analyse simple
+#  Phase 1
 
+Validation de la reproductibilité de la méthode en comparant les mesures réalisées par trois cliniciens. 
 
+La différence du \gls{dgno} entre les sujets sains & malades serait selon la littérature de \qty{2}{\mm}. On prend donc comme écart de mesure acceptable entre deux cliniciens \qty{1}{\mm}. Les cas de divergences supérieures seront notées en précisant s'il s'agit de résultats dans la zone *saine*, *malade* ou introduisant un doute.
 
-Une analyse de corrélation (package `corr` [@corr]) entre les variables sera réalisée & présentée sur un graphique de corrélation. Si certaines variables se montrent anormalement corrélées elles devront être exclues de l'étude après accord du promoteur.
+Les résultats des trois examinateurs seront comparées globalement par un test des rangs de Kruskal-Wallis & présentées deux à deux par des diagrammes de Bland & Altman.
 
-Un tableau présentera les résultats du questionnaire *médecin*.
+Cette première phase concerne 60 patients. 
 
-## Analyse factorielle
+```{r}
+#| eval: false
 
-Si le nombre de cas recueillis le permet une analyse factorielle en MCA (Analyse de correspondances multiples -- package `FactoMineR` [@facto]) sera réalisée.
+library("irr")
+icc(
+  anxiety, model = "twoway", 
+  type = "agreement", unit = "single"
+  )
+```
 
-Cette analyse ne pourra être réalisée qu'après transformation des variables numériques en catégories & imputation des données manquantes ce qui n'est possible que si ces dernières ne sont pas trop nombreuses.
+# Phase 2
 
-# Objectif principal
+## Objectif principal
 
+La validation du marqueur sera obtenue par l'étude de l'\gls{auc} sur une courbe ROC calculée avec :
 
-Une analyse simple sera réalisée pour rechercher d'éventuels facteurs pronostics en utilisant les données médicales (terme, poids à la naissance\dots)
+- Valeur mesurée : le \gls{dgno} mesuré par le clinicien expert
+- Diagnostic de référence : celui réalisé par le clinicien expert à six mois (deux classes : malade/sain)
 
-
-## Analyse par régression
-
-Un modèle de régression logistique multinomiale sera employé (package `VGAM` [@vgam]). Ce modèle de régression permettra d’explorer les facteurs associés à la réponse en utilisant les critères ayant une réponse significative avec un seuil de la p.value \< 0,2 lors de l'étape précédente. Une recherche du meilleur modèle sera réalisée par un step-by-step descendant évaluée par le critère d’information d’Akaike. Cette étape sera réalisée après imputation des données manquantes mais le résultat final sera calculé sur les données vraies. 
+Une limite acceptable à \num{0.8} sera retenue. 
 
 # Objectifs secondaires
 
 ## Objectif 1
+
+*Évaluer la fiabilité des mesures du DGNO à l’échographie*
+
+
+
+Cet objectif reprend les objectifs de la phase I (section \ref{phase-1}). 
+
+
+
 
 
 ## Objectif 2
@@ -76,3 +98,8 @@ L'analyse statistique sera réalisée avec le logiciel **R**[@rstat] & divers pa
 Un dépôt GitHub sera utilisé qui ne comprendra que le code & non les données ou résultats. Au besoin un faux tableau de données sera présenté pour permettre des tests.
 
 <https://github.com/philippemichel/FACE-Q>
+
+
+\printglossaries
+
+\addcontentsline{toc}{chapter}{C. Bibliographie}
