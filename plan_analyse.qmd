@@ -22,19 +22,13 @@ La valeur de l'\gls{auc} de l'échantillon est supposée être de 0,8 (bon marqu
 La méthode de calcul de l'erreur standard donnée par Hanley et McNeil (1982) sera
 utilisée pour calculer la limite de l'intervalle de confiance.
 
-Pour produire un intervalle de confiance avec une distance de l'\gls{auc} de 0,075 à la
-limite inférieure, le nombre de sujets nécessaires sera de 57 dans le groupe \gls{acg}
-positif et de 133 dans le groupe \gls{acg} négatif (prévalence de l’\gls{acg} positif parmi les cas suspects = 0,3) soit 190 patients au total.
+Pour produire un intervalle de confiance avec une distance de l'\gls{auc} de \num{0.075} à la limite inférieure, le nombre de sujets nécessaires sera de 57 dans le groupe \gls{acg} positif et de 133 dans le groupe \gls{acg} négatif (prévalence de l’\gls{acg} positif parmi les cas suspects = 0,3) soit 190 patients au total.
 
-Un nombre important de patients a une atteint bilatérale, l’unité statistique sera l’œil et non pas le patient. Cela ne modifie pas l’effectif, ainsi la précision obtenue sera
-supérieure à celle du calcul d’effectif. Le modèle utilisé tiendra compte de la répétition des mesures (mesures non indépendantes, effet aléatoire).
+Un nombre important de patients a une atteint bilatérale, l’unité statistique sera l’œil et non pas le patient. Cela ne modifie pas l’effectif, ainsi la précision obtenue sera supérieure à celle du calcul d’effectif. Le modèle utilisé tiendra compte de la répétition des mesures (mesures non indépendantes, effet aléatoire).
 
 ## Données manquantes
 
-Le décompte des données manquantes sera réalisé & présenté par un tableau ou un graphique. Les variables comportant trop de données manquantes ou non utilisables ne seront pas prises en compte après validation par le promoteur. Les cas où la réhospitalisation de l’enfant (critère principal) n'est pas noté seront exclus. 
-
-Après ce premier tri une imputation des données manquantes (package `missMDA` [@miss]) sera réalisée uniquement pour l'analyse factorielle & pour la recherche du meilleur modèle par step-by-tep descendant pour les analyses par régression (logistique ou linéaire). Néanmoins pour cette analyse, après choix du modèle, le calcul final sera fait avec les données réelles. 
-
+Le décompte des données manquantes sera réalisé & présenté par un tableau ou un graphique. Les variables comportant trop de données manquantes ou non utilisables ne seront pas prises en compte après validation par le promoteur. Les cas où la mesure du \gls{dgno} n'est pas notée seront exclus. 
 
 #  Phase 1
 
@@ -42,7 +36,9 @@ Validation de la reproductibilité de la méthode en comparant les mesures réal
 
 La différence du \gls{dgno} entre les sujets sains & malades serait selon la littérature de \qty{2}{\mm}. On prend donc comme écart de mesure acceptable entre deux cliniciens \qty{1}{\mm}. Les cas de divergences supérieures seront notées en précisant s'il s'agit de résultats dans la zone *saine*, *malade* ou introduisant un doute.
 
-Les résultats des trois examinateurs seront comparées globalement par un test des rangs de Kruskal-Wallis & présentées deux à deux par des diagrammes de Bland & Altman.
+Les résultats des trois examinateurs seront comparés globalement par un test des rangs de Kruskal-Wallis & présentées deux à deux par des diagrammes de Bland & Altman présentant la limite de \qty{1}{\mm} & l’intervalle de confiance à 95 % des mesures.
+
+Le \gls{icc} inter-évaluateurs (modèle à deux facteurs à effets aléatoires --- two-way random) sera calculé (package `irr` [@irr]). Un \gls{icc} > \num{0.75} sera considéré comme correct.
 
 Cette première phase concerne 60 patients. 
 
@@ -50,8 +46,9 @@ Cette première phase concerne 60 patients.
 #| eval: false
 
 library("irr")
+tt |> 
 icc(
-  anxiety, model = "twoway", 
+  model = "twoway", 
   type = "agreement", unit = "single"
   )
 ```
@@ -62,34 +59,50 @@ icc(
 
 La validation du marqueur sera obtenue par l'étude de l'\gls{auc} sur une courbe ROC calculée avec :
 
-- Valeur mesurée : le \gls{dgno} mesuré par le clinicien expert
-- Diagnostic de référence : celui réalisé par le clinicien expert à six mois (deux classes : malade/sain)
+- Valeur mesurée : le \gls{dgno} mesuré par le clinicien expert;
+- Diagnostic de référence : celui réalisé par le clinicien expert à six mois (deux classes : malade/sain).
 
-Une limite acceptable à \num{0.8} sera retenue. 
+Une limite acceptable sera une \gls{auc} > \num{0.8}. 
 
 # Objectifs secondaires
 
 ## Objectif 1
 
-*Évaluer la fiabilité des mesures du DGNO à l’échographie*
-
-
+*Évaluer la fiabilité des mesures du \gls{dgno} à l’échographie.*
 
 Cet objectif reprend les objectifs de la phase I (section \ref{phase-1}). 
 
-
-
-
-
 ## Objectif 2
+*Évaluer les performances diagnostiques du \gls{dgno} dans l’\gls{acg}.*
+
+La courbe ROC sera tracée (package `pROC` [@proc]). 
+
+Le point d’inflexion de la courbe ROC qui permet de définir le seuil le plus discriminant entre normal & pathologique sera recherché visuellement tout d'abord sur la courbe puis confirmé par les calculs de spécificité pour des valeurs proches. 
+
+Les indicateurs classiques de performance diagnostiques seront présentés (sensibilité, spécificité, valeur prédictive positive, valeur prédictive négative, rapport de vraisemblance positive, rapport de vraisemblance négative) --- package `epiDisplay` [@epid] calculés avec un seuil pathologique à \qty{2}{\mm} reconnu dans la littérature & avec le seuil mis en évidence sur notre échantillon. 
 
 
 ## Objectif 3
+*Étudier l’évolution du \gls{dgno} sous traitement entre M0 et M6 pour les patients présentant une \gls{acg}.*
 
+La mesure de la \gls{dgno} sera réalisée à M0 & M6 pour chaque patient. Les mesures seront présentées en moyenne, écart-type & intervalle de confiance aux deux temps puis comparées par un test de Student pour séries appariées. 
 
 ## Objectif 4
+*Évaluation exploratoire du \gls{dgno} en fonction de la présence ou non d’une \gls{acg} extra crânienne.*
 
+Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg}
+crânienne, \gls{acg} extra-crânienne, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis en insistant sur la comparaison \gls{acg} crânienne vs \gls{acg} extra-crânienne (test du t de Student).
 
+## Objectif 5
+*Évaluation exploratoire du \gls{dgno} selon la présence ou non d’une \gls{acg} avec atteinte visuelle.*
+
+Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg} avec atteinte visuelle, \gls{acg} sans atteinte visuelle, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis en insistant sur la comparaison \gls{acg} avec
+atteinte visuelle, \gls{acg} sans atteinte visuelle, (test du t de Student).
+
+## Objectif 6
+*Étudier la faisabilité de l’échographie comme outil diagnostic de la maladie de Horton.*
+
+Une description de la population sera réalisée (critères cliniques, sociaux\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression logistique sera réalisée : malades/sains vs \gls{dgno} & tous les critères démographiques ayant un p < \num{0.2}. Le modèle sera affiné par une analyse en stpe-by-step descendant basé sur l'\textsc{aic}.
 
 # Technique {.appendix}
 
@@ -97,7 +110,7 @@ L'analyse statistique sera réalisée avec le logiciel **R**[@rstat] & divers pa
 
 Un dépôt GitHub sera utilisé qui ne comprendra que le code & non les données ou résultats. Au besoin un faux tableau de données sera présenté pour permettre des tests.
 
-<https://github.com/philippemichel/FACE-Q>
+<https://github.com/philippemichel/PETRUS>
 
 
 \printglossaries
