@@ -1,4 +1,4 @@
-![Static badge](https://img.shields.io/badge/PAS-en cours-green)
+![Static badge](https://img.shields.io/badge/PAS-fini-green)
 
 ![Static badge](https://img.shields.io/badge/Rapport-projet-grey)
 
