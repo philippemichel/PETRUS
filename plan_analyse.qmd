@@ -6,6 +6,9 @@ subtitle: "Plan d'analyse statistique"
 rm(list=ls())
 library("baseph")
 library("tidyverse")
+library("boot")
+library("labelled")
+library("ggsci")
 # sessionInfo()
 ```
 
@@ -32,11 +35,108 @@ Le décompte des données manquantes sera réalisé & présenté par un tableau 
 
 #  Phase 1
 
-Validation de la reproductibilité de la méthode en comparant les mesures réalisées par trois cliniciens. 
+*Validation de la reproductibilité de la méthode en comparant les mesures réalisées par trois cliniciens.*
 
 La différence du \gls{dgno} entre les sujets sains & malades serait selon la littérature de \qty{2}{\mm}. On prend donc comme écart de mesure acceptable entre deux cliniciens \qty{1}{\mm}. Les cas de divergences supérieures seront notées en précisant s'il s'agit de résultats dans la zone *saine*, *malade* ou introduisant un doute.
 
-Les résultats des trois examinateurs seront comparés globalement par un test des rangs de Kruskal-Wallis & présentées deux à deux par des diagrammes de Bland & Altman présentant la limite de \qty{1}{\mm} & l’intervalle de confiance à 95 % des mesures.
+Le diagramme de Bland & Altmann est classiquement utilisé pour présenter des mesures réalisées par deux cliniciens mais ne s'applique pas pour plus de cliniciens.  Les diagrammes de Bland & Altmann seront tracés pour chaque paire de cliniciens (trois diagrammes) Les résultats seront présentés par un diagramme présentant en abscisse la mesure & en ordonnée la moyenne, les examinateurs étant différentiés par la couleur du point (graphique @fig-ba1). Les différences seront évaluées par la méthode proposée par S. Möller [@moller11] sur un diagramme avec en abscisse la moyenne des mesures pour chaque sujet & en ordonnée l'écart-type entre les trois mesures -- (graphique @fig-ba2). 
+
+```{r}
+#| label: prepa_bland
+
+ n <- 60
+A <- (rnorm(n,20,1)*1)/15
+B <- (rnorm(n,20,1.2)*1)/15
+C <- (rnorm(n,20,1)*1 + rnorm(n,1,1.1) * 1)/15
+
+zz <- tibble(A,B,C) |> 
+rowwise() |> 
+mutate(moy = mean(c(A,B,C))) |> 
+mutate(ety = sd(c(A,B,C)))
+```
+
+```{r}
+#| label: fig-ba1
+#| fig-cap: titre
+
+
+aa <- zz |> 
+  pivot_longer(c(A,B,C)) 
+maa <- mean(aa$value)
+saa <- sd(aa$value)*1.96
+var_label(aa) <- c("Moyenne par sujet","Écart-type par sujet" ,"Examinateur","Mesure")
+
+aa |> 
+  ggplot() + 
+    aes(x = moy, y = value, col = name) +
+    geom_point() +
+    geom_hline(yintercept = maa) +
+    geom_hline(yintercept = c(maa-saa,maa +saa), linetype = 6) +
+    labs(title = "Mesures par examinateur",
+        subtitle = "Données fictives",
+        x = "Moyennes des mesures",
+        y = "Mesures",
+        caption = "Pour chaque cas les trois mesures sont représentées par trois points de couleur différente selon l'examinateur.",
+        color = "Examinateur") +
+    theme_light() +
+    scale_fill_jama() +
+    theme(
+      plot.title = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 12),
+      axis.title.x = element_text(size = 12),
+      legend.title = element_text(size = 12),
+      axis.title.y = element_text(
+        size = 12,
+        angle = 90,
+        vjust = .5
+      ),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.position = "right"
+    )
+```
+
+```{r}
+#| label: fig-ba2
+#| fig-cap: Écart-type des mesures
+
+msd <- mean(zz$ety)
+cib <- msd-sd(zz$ety)*1.96
+cih <- msd+sd(zz$ety)*1.96
+
+zz |> 
+  ggplot() + 
+    aes(x = moy, y = ety) +
+    geom_point() +
+  geom_hline(yintercept = msd, linetype = 1) +
+  geom_hline(yintercept = c(cib, cih), linetype = 5) +
+      labs(title = "Différences inter examinateurs",
+        subtitle = "Données fictives",
+        x = "Moyennes des mesures",
+        y = "Écart-type des Mesures par cas",
+        caption = "",
+        color = "Examinateur") +
+    theme_light() +
+    scale_fill_jama() +
+    theme(
+      plot.title = element_text(size = 14, face = "bold"),
+      plot.subtitle = element_text(size = 12),
+      axis.title.x = element_text(size = 12),
+      legend.title = element_text(size = 12),
+      axis.title.y = element_text(
+        size = 12,
+        angle = 90,
+        vjust = .5
+      ),
+    axis.text.x = element_text(size = 12),
+    axis.text.y = element_text(size = 12),
+    legend.position = "right"
+    )
+
+
+```
+
+
 
 Le \gls{icc} inter-évaluateurs (modèle à deux facteurs à effets aléatoires --- two-way random) sera calculé (package `irr` [@irr]). Un \gls{icc} > \num{0.75} sera considéré comme correct.
 
@@ -79,7 +179,7 @@ La courbe ROC sera tracée (package `pROC` [@proc]).
 
 Le point d’inflexion de la courbe ROC qui permet de définir le seuil le plus discriminant entre normal & pathologique sera recherché visuellement tout d'abord sur la courbe puis confirmé par les calculs de spécificité pour des valeurs proches. 
 
-Les indicateurs classiques de performance diagnostiques seront présentés (sensibilité, spécificité, valeur prédictive positive, valeur prédictive négative, rapport de vraisemblance positive, rapport de vraisemblance négative) --- package `epiDisplay` [@epid] calculés avec un seuil pathologique à \qty{2}{\mm} reconnu dans la littérature & avec le seuil mis en évidence sur notre échantillon. 
+Les indicateurs classiques de performance diagnostiques seront présentés (sensibilité, spécificité, valeur prédictive positive, valeur prédictive négative, rapport de vraisemblance positive, rapport de vraisemblance négative) (package `epiDisplay` [@epid]) calculés avec un seuil pathologique à \qty{2}{\mm} reconnu dans la littérature puis avec le seuil mis en évidence sur notre échantillon. 
 
 
 ## Objectif 3
@@ -102,7 +202,7 @@ atteinte visuelle, \gls{acg} sans atteinte visuelle, (test du t de Student).
 ## Objectif 6
 *Étudier la faisabilité de l’échographie comme outil diagnostic de la maladie de Horton.*
 
-Une description de la population sera réalisée (critères cliniques, sociaux\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression logistique sera réalisée : malades/sains vs \gls{dgno} & tous les critères démographiques ayant un p < \num{0.2}. Le modèle sera affiné par une analyse en stpe-by-step descendant basé sur l'\textsc{aic}.
+Une description de la population sera réalisée (critères cliniques, sociaux\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression logistique sera réalisée : malades/sains vs \gls{dgno} & tous les critères démographiques ayant un p < \num{0.2}. Le modèle sera affiné par une analyse en step-by-step descendant basé sur l'\textsc{aic}.
 
 # Technique {.appendix}
 
