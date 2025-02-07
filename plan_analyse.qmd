@@ -1,5 +1,7 @@
 ---
 subtitle: "Plan d'analyse statistique"
+lot: false
+lof: false
 ---
 
 ```{r info}
@@ -22,7 +24,7 @@ Parmi les cas suspects d’\gls{acg} inclus dans l’étude, les cas d'\gls{acg}
 (\gls{auc}) du marqueur.
 
 La valeur de l'\gls{auc} de l'échantillon est supposée être de 0,8 (bon marqueur).
-La méthode de calcul de l'erreur standard donnée par Hanley et McNeil (1982) sera
+La méthode de calcul de l'erreur standard donnée par Hanley et McNeil (package MKmisc[@mkmisc]) sera
 utilisée pour calculer la limite de l'intervalle de confiance.
 
 Pour produire un intervalle de confiance avec une distance de l'\gls{auc} de \num{0.075} à la limite inférieure, le nombre de sujets nécessaires sera de 57 dans le groupe \gls{acg} positif et de 133 dans le groupe \gls{acg} négatif (prévalence de l’\gls{acg} positif parmi les cas suspects = 0,3) soit 190 patients au total.
@@ -39,7 +41,7 @@ Le décompte des données manquantes sera réalisé & présenté par un tableau 
 
 La différence du \gls{dgno} entre les sujets sains & malades serait selon la littérature de \qty{2}{\mm}. On prend donc comme écart de mesure acceptable entre deux cliniciens \qty{1}{\mm}. Les cas de divergences supérieures seront notées en précisant s'il s'agit de résultats dans la zone *saine*, *malade* ou introduisant un doute.
 
-Le diagramme de Bland & Altmann est classiquement utilisé pour présenter des mesures réalisées par deux cliniciens mais ne s'applique pas pour plus de cliniciens.  Les diagrammes de Bland & Altmann seront tracés pour chaque paire de cliniciens (trois diagrammes) Les résultats seront présentés par un diagramme présentant en abscisse la mesure & en ordonnée la moyenne, les examinateurs étant différentiés par la couleur du point (graphique @fig-ba1). Les différences seront évaluées par la méthode proposée par S. Möller [@moller11] sur un diagramme avec en abscisse la moyenne des mesures pour chaque sujet & en ordonnée l'écart-type entre les trois mesures -- (graphique @fig-ba2). 
+Le diagramme de Bland & Altmann est classiquement utilisé pour présenter des mesures réalisées par deux cliniciens mais ne s'applique pas pour plus de cliniciens.  Les diagrammes de Bland & Altmann seront tracés pour chaque paire de cliniciens (trois diagrammes) Les résultats seront présentés par un diagramme présentant en abscisse la mesure & en ordonnée la moyenne, les examinateurs étant différentiés par la couleur du point (graphique @fig-ba1). Les différences seront évaluées par la méthode proposée par S. Möller[@moller11] sur un diagramme avec en abscisse la moyenne des mesures pour chaque sujet & en ordonnée l'écart-type entre les trois mesures -- (graphique @fig-ba2). 
 
 ```{r}
 #| label: prepa_bland
@@ -76,7 +78,7 @@ aa |>
         subtitle = "Données fictives",
         x = "Moyennes des mesures",
         y = "Mesures",
-        caption = "Pour chaque cas les trois mesures sont représentées par trois points de couleur différente selon l'examinateur.",
+        caption = "Pour chaque cas les trois mesures sont représentées\n par trois points de couleur différente selon l'examinateur.",
         color = "Examinateur") +
     theme_light() +
     scale_fill_jama() +
@@ -93,7 +95,7 @@ aa |>
     axis.text.x = element_text(size = 12),
     axis.text.y = element_text(size = 12),
     legend.position = "right"
-    )
+    ) 
 ```
 
 ```{r}
@@ -107,7 +109,7 @@ cih <- msd+sd(zz$ety)*1.96
 zz |> 
   ggplot() + 
     aes(x = moy, y = ety) +
-    geom_point() +
+    geom_point(aes(x = )) +
   geom_hline(yintercept = msd, linetype = 1) +
   geom_hline(yintercept = c(cib, cih), linetype = 5) +
       labs(title = "Différences inter examinateurs",
@@ -157,12 +159,12 @@ icc(
 
 ## Objectif principal
 
-La validation du marqueur sera obtenue par l'étude de l'\gls{auc} sur une courbe ROC calculée avec :
+La validation du marqueur sera obtenue par l'étude de l'\gls{auc} sur une courbe ROC (package `pROC` [@proc]) calculée avec :
 
-- Valeur mesurée : le \gls{dgno} mesuré par le clinicien expert;
+- Valeur mesurée : le \gls{dgno} mesuré par le clinicien expert à l'inclusion;
 - Diagnostic de référence : celui réalisé par le clinicien expert à six mois (deux classes : malade/sain).
 
-Une limite acceptable sera une \gls{auc} > \num{0.8}. 
+Une limite acceptable sera une \gls{auc} > \num{0.8}. L’erreur standard sera calculée par la méthode de Hanley et McNeil (package `MKmisc` [@mkmisc]) avec une erreur admissible à \num{0.075}. Des intervalles de confiance par zone (méthode de Clopper and Pearson) seront tracés autour des probables points d'inflexion.
 
 # Objectifs secondaires
 
@@ -170,16 +172,16 @@ Une limite acceptable sera une \gls{auc} > \num{0.8}.
 
 *Évaluer la fiabilité des mesures du \gls{dgno} à l’échographie.*
 
-Cet objectif reprend les objectifs de la phase I (section \ref{phase-1}). 
+Cet objectif reprend les objectifs de la phase I (section \ref{phase-1}) en appliquant les méthodes sur l'échantillon complet.
 
 ## Objectif 2
 *Évaluer les performances diagnostiques du \gls{dgno} dans l’\gls{acg}.*
 
 La courbe ROC sera tracée (package `pROC` [@proc]). 
 
-Le point d’inflexion de la courbe ROC qui permet de définir le seuil le plus discriminant entre normal & pathologique sera recherché visuellement tout d'abord sur la courbe puis confirmé par les calculs de spécificité pour des valeurs proches. 
+Le point d’inflexion de la courbe ROC qui permet de définir le seuil le plus discriminant entre normal & pathologique sera recherché visuellement tout d'abord sur la courbe puis confirmé par les calculs de spécificité/sensibilité pour des valeurs proches. 
 
-Les indicateurs classiques de performance diagnostiques seront présentés (sensibilité, spécificité, valeur prédictive positive, valeur prédictive négative, rapport de vraisemblance positive, rapport de vraisemblance négative) (package `epiDisplay` [@epid]) calculés avec un seuil pathologique à \qty{2}{\mm} reconnu dans la littérature puis avec le seuil mis en évidence sur notre échantillon. 
+Les indicateurs classiques de performance diagnostiques seront présentés (sensibilité, spécificité, valeur prédictive positive, valeur prédictive négative, rapport de vraisemblance positive, rapport de vraisemblance négative) (package `epiDisplay` [@epid]) calculés avec un seuil pathologique à \qty{2}{\mm} reconnu dans la littérature puis avec le seuil retenu sur notre échantillon. 
 
 
 ## Objectif 3
@@ -202,7 +204,7 @@ atteinte visuelle, \gls{acg} sans atteinte visuelle, (test du t de Student).
 ## Objectif 6
 *Étudier la faisabilité de l’échographie comme outil diagnostic de la maladie de Horton.*
 
-Une description de la population sera réalisée (critères cliniques, sociaux\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression logistique sera réalisée : malades/sains vs \gls{dgno} & tous les critères démographiques ayant un p < \num{0.2}. Le modèle sera affiné par une analyse en step-by-step descendant basé sur l'\textsc{aic}.
+Une description de la population sera réalisée (critères cliniques, sociaux\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression linéaire sera réalisée : \gls{dgno}  vs malades/sains & tous les critères démographiques ou cliniques ayant un p < \num{0.2}. Le modèle sera affiné par une analyse en step-by-step descendant basé sur l'\textsc{aic}.
 
 # Technique {.appendix}
 
