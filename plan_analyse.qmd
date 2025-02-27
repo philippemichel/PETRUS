@@ -20,12 +20,9 @@ Le risque $\alpha$ retenu sera de 0,05 & la puissance de 0,8.
 
 ## Taille de l'échantillon
 
-Parmi les cas suspects d’\gls{acg} inclus dans l’étude, les cas d'\gls{acg} positif et \gls{acg} négatif seront séparés et la mesure du marqueur diagnostique « \gls{dgno}) » sera réalisée pour chaque sujet et ce afin de calculer un intervalle de confiance unilatéral de 97,5 % pour la limite inférieure de l'aire sous la courbe ROC
-(\gls{auc}) du marqueur.
+Parmi les cas suspects d’\gls{acg} inclus dans l’étude, les cas d'\gls{acg} positif et \gls{acg} négatif seront séparés et la mesure du marqueur diagnostique « \gls{dgno}) » sera réalisée pour chaque sujet et ce afin de calculer un intervalle de confiance unilatéral de 97,5 % pour la limite inférieure de l'aire sous la courbe ROC (\gls{auc}) du marqueur.
 
-La valeur de l'\gls{auc} de l'échantillon est supposée être de 0,8 (bon marqueur).
-La méthode de calcul de l'erreur standard donnée par Hanley et McNeil (package MKmisc[@mkmisc]) sera
-utilisée pour calculer la limite de l'intervalle de confiance.
+La valeur de l'\gls{auc} de l'échantillon est supposée être de 0,8 (bon marqueur). La méthode de calcul de l'erreur standard donnée par \textsc{Hanley} et \textsc{McNeil} (package MKmisc[@mkmisc]) sera utilisée pour calculer la limite de l'intervalle de confiance.
 
 Pour produire un intervalle de confiance avec une distance de l'\gls{auc} de \num{0.075} à la limite inférieure, le nombre de sujets nécessaires sera de 57 dans le groupe \gls{acg} positif et de 133 dans le groupe \gls{acg} négatif (prévalence de l’\gls{acg} positif parmi les cas suspects = 0,3) soit 190 patients au total.
 
@@ -33,15 +30,29 @@ Un nombre important de patients a une atteint bilatérale, l’unité statistiqu
 
 ## Données manquantes
 
-Le décompte des données manquantes sera réalisé & présenté par un tableau ou un graphique. Les variables comportant trop de données manquantes ou non utilisables ne seront pas prises en compte après validation par le promoteur. Les cas où la mesure du \gls{dgno} n'est pas notée seront exclus. 
+Le décompte des données manquantes sera réalisé & présenté par un tableau ou un graphique. Les variables comportant trop de données manquantes ou non utilisables ne seront pas prises en compte après validation par le promoteur. Les cas où la mesure du \gls{dgno} n'est pas notée seront exclus.
 
-#  Phase 1
+# Phase 1
+
+## Qualification des intervenants
+
+*Chaque centre réalisera 10 coupes d’échographie orbitaire avec mesure du nerf optique qui seront relues par 3 experts afin d’analyser la concordance inter-observateur*
+
+Les différences éventuelles dans les mesures seront recherchées tout d'abord par un test de \textsc{Kappa-Cohen} (package `irr` [@irr]) en catégorisant les résultats en normal/pathologique avec un seuil admissible à \num{0.4} (accord modéré)[^1].
+
+Puis un analyse en sensibilité /spécificité sera réalisée en prenant la mesure des expert comme gold-standard.
+
+[^1]: Le seuil a été choisi bas en raison de la faible taille des échantillons (10 cas)
+
+Si les résultats d'un centre semblent insuffisants l'information sera transmise à l'investigateur coordonateur.
+
+## Validation de la reproductibilité
 
 *Validation de la reproductibilité de la méthode en comparant les mesures réalisées par trois cliniciens.*
 
 La différence du \gls{dgno} entre les sujets sains & malades serait selon la littérature de \qty{2}{\mm}. On prend donc comme écart de mesure acceptable entre deux cliniciens \qty{1}{\mm}. Les cas de divergences supérieures seront notées en précisant s'il s'agit de résultats dans la zone *saine*, *malade* ou introduisant un doute.
 
-Le diagramme de Bland & Altmann est classiquement utilisé pour présenter des mesures réalisées par deux cliniciens mais ne s'applique pas pour plus de cliniciens.  Les diagrammes de Bland & Altmann seront tracés pour chaque paire de cliniciens (trois diagrammes) Les résultats seront présentés par un diagramme présentant en abscisse la mesure & en ordonnée la moyenne, les examinateurs étant différentiés par la couleur du point (graphique @fig-ba1). Les différences seront évaluées par la méthode proposée par S. Möller[@moller11] sur un diagramme avec en abscisse la moyenne des mesures pour chaque sujet & en ordonnée l'écart-type entre les trois mesures -- (graphique @fig-ba2). 
+Le diagramme de \textsc{Bland} & \textsc{Altmann} est classiquement utilisé pour présenter des mesures réalisées par deux cliniciens mais ne s'applique pas pour plus de cliniciens. Les diagrammes de \textsc{Bland} & \textsc{Altmann} seront tracés pour chaque paire de cliniciens (trois diagrammes) Les résultats seront présentés par un diagramme présentant en abscisse la mesure & en ordonnée la moyenne, les examinateurs étant différentiés par la couleur du point (graphique @fig-ba1). Les différences seront évaluées par la méthode proposée par \textsc{S. Möller}[@moller11] sur un diagramme avec en abscisse la moyenne des mesures pour chaque sujet & en ordonnée l'écart-type entre les trois mesures -- (graphique @fig-ba2).
 
 ```{r}
 #| label: prepa_bland
@@ -138,11 +149,9 @@ zz |>
 
 ```
 
+Le \gls{icc} inter-évaluateurs (modèle à deux facteurs à effets aléatoires --- two-way random) sera calculé (package `irr` [@irr]). Un \gls{icc} \> \num{0.75} sera considéré comme correct.
 
-
-Le \gls{icc} inter-évaluateurs (modèle à deux facteurs à effets aléatoires --- two-way random) sera calculé (package `irr` [@irr]). Un \gls{icc} > \num{0.75} sera considéré comme correct.
-
-Cette première phase concerne 60 patients. 
+Cette première phase concerne 60 patients.
 
 ```{r}
 #| eval: false
@@ -155,56 +164,60 @@ icc(
   )
 ```
 
+
+
 # Phase 2
 
 ## Objectif principal
 
 La validation du marqueur sera obtenue par l'étude de l'\gls{auc} sur une courbe ROC (package `pROC` [@proc]) calculée avec :
 
-- Valeur mesurée : le \gls{dgno} mesuré par le clinicien expert à l'inclusion;
-- Diagnostic de référence : celui réalisé par le clinicien expert à six mois (deux classes : malade/sain).
+-   Valeur mesurée : le \gls{dgno} mesuré par le clinicien expert à l'inclusion;
+-   Diagnostic de référence : celui réalisé par le clinicien expert à six mois (deux classes : malade/sain).
 
-Une limite acceptable sera une \gls{auc} > \num{0.8}. L’erreur standard sera calculée par la méthode de Hanley et McNeil (package `MKmisc` [@mkmisc]) avec une erreur admissible à \num{0.075}. Des intervalles de confiance par zone (méthode de Clopper and Pearson) seront tracés autour des probables points d'inflexion.
+Une limite acceptable sera une \gls{auc} \> \num{0.8}. L’erreur standard sera calculée par la méthode de \textsc{Hanley} et \textsc{McNeil} (package `MKmisc` [@mkmisc]) avec une erreur admissible à \num{0.075}. Des intervalles de confiance par zone (méthode de \textsc{Clopper} and \textsc{Pearson}) seront tracés autour des probables points d'inflexion.
 
 # Objectifs secondaires
 
 ## Objectif 1
 
-*Évaluer la fiabilité des mesures du \gls{dgno} à l’échographie.*
+*Évaluer la fiabilité des mesures du* \gls{dgno} à l’échographie.
 
 Cet objectif reprend les objectifs de la phase I (section \ref{phase-1}) en appliquant les méthodes sur l'échantillon complet.
 
 ## Objectif 2
-*Évaluer les performances diagnostiques du \gls{dgno} dans l’\gls{acg}.*
 
-La courbe ROC sera tracée (package `pROC` [@proc]). 
+*Évaluer les performances diagnostiques du* \gls{dgno} dans l’\gls{acg}.
 
-Le point d’inflexion de la courbe ROC qui permet de définir le seuil le plus discriminant entre normal & pathologique sera recherché visuellement tout d'abord sur la courbe puis confirmé par les calculs de spécificité/sensibilité pour des valeurs proches. 
+La courbe ROC sera tracée (package `pROC` [@proc]).
 
-Les indicateurs classiques de performance diagnostiques seront présentés (sensibilité, spécificité, valeur prédictive positive, valeur prédictive négative, rapport de vraisemblance positive, rapport de vraisemblance négative) (package `epiDisplay` [@epid]) calculés avec un seuil pathologique à \qty{2}{\mm} reconnu dans la littérature puis avec le seuil retenu sur notre échantillon. 
+Le point d’inflexion de la courbe ROC qui permet de définir le seuil le plus discriminant entre normal & pathologique sera recherché visuellement tout d'abord sur la courbe puis confirmé par les calculs de spécificité/sensibilité pour des valeurs proches.
 
+Les indicateurs classiques de performance diagnostiques seront présentés (sensibilité, spécificité, valeur prédictive positive, valeur prédictive négative, rapport de vraisemblance positive, rapport de vraisemblance négative) (package `irr` [@irr]) calculés avec un seuil pathologique à \qty{2}{\mm} reconnu dans la littérature puis avec le seuil retenu sur notre échantillon.
 
 ## Objectif 3
-*Étudier l’évolution du \gls{dgno} sous traitement entre M0 et M6 pour les patients présentant une \gls{acg}.*
 
-La mesure de la \gls{dgno} sera réalisée à M0 & M6 pour chaque patient. Les mesures seront présentées en moyenne, écart-type & intervalle de confiance aux deux temps puis comparées par un test de Student pour séries appariées. 
+*Étudier l’évolution du* \gls{dgno} sous traitement entre M0 et M6 pour les patients présentant une \gls{acg}.
+
+La mesure de la \gls{dgno} sera réalisée à M0 & M6 pour chaque patient. Les mesures seront présentées en moyenne, écart-type & intervalle de confiance aux deux temps puis comparées par un test de Student pour séries appariées.
 
 ## Objectif 4
-*Évaluation exploratoire du \gls{dgno} en fonction de la présence ou non d’une \gls{acg} extra crânienne.*
 
-Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg}
-crânienne, \gls{acg} extra-crânienne, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis en insistant sur la comparaison \gls{acg} crânienne vs \gls{acg} extra-crânienne (test du t de Student).
+*Évaluation exploratoire du* \gls{dgno} en fonction de la présence ou non d’une \gls{acg} extra crânienne.
+
+Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg} crânienne, \gls{acg} extra-crânienne, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis en insistant sur la comparaison \gls{acg} crânienne vs \gls{acg} extra-crânienne (test du t de Student).
 
 ## Objectif 5
-*Évaluation exploratoire du \gls{dgno} selon la présence ou non d’une \gls{acg} avec atteinte visuelle.*
 
-Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg} avec atteinte visuelle, \gls{acg} sans atteinte visuelle, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis en insistant sur la comparaison \gls{acg} avec
-atteinte visuelle, \gls{acg} sans atteinte visuelle, (test du t de Student).
+*Évaluation exploratoire du* \gls{dgno} selon la présence ou non d’une \gls{acg} avec atteinte visuelle.
+
+Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg} avec atteinte visuelle, \gls{acg} sans atteinte visuelle, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis en insistant sur la comparaison \gls{acg} avec atteinte visuelle, \gls{acg} sans atteinte visuelle, (test du t de Student).
 
 ## Objectif 6
-*Étudier la faisabilité de l’échographie comme outil diagnostic de la maladie de Horton.*
 
-Une description de la population sera réalisée (critères cliniques, sociaux\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression linéaire sera réalisée : \gls{dgno}  vs malades/sains & tous les critères démographiques ou cliniques ayant un p < \num{0.2}. Le modèle sera affiné par une analyse en step-by-step descendant basé sur l'\textsc{aic}.
+*Étudier la faisabilité de l’échographie comme outil diagnostic de l'\gls{acg}.*
+
+Une description de la population sera réalisée (critères cliniques, démographiques\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression linéaire sera réalisée : \gls{dgno} vs malades/sains & tous les critères démographiques ou cliniques ayant un p \< \num{0.2}. Le modèle sera affiné par une analyse en step-by-step descendant basé sur l'\textsc{aic}.
 
 # Technique {.appendix}
 
@@ -213,7 +226,6 @@ L'analyse statistique sera réalisée avec le logiciel **R**[@rstat] & divers pa
 Un dépôt GitHub sera utilisé qui ne comprendra que le code & non les données ou résultats. Au besoin un faux tableau de données sera présenté pour permettre des tests.
 
 <https://github.com/philippemichel/PETRUS>
-
 
 \printglossaries
 
