@@ -158,7 +158,7 @@ tt |>
 icc(
   model = "twoway", 
   type = "agreement", unit = "single"
-  )
+  )œœ
 ```
 
 
