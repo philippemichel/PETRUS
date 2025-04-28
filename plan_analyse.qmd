@@ -1,5 +1,5 @@
 ---
-subtitle: "Plan d'analyse statistique - V1.3"
+subtitle: "Plan d'analyse statistique - V1.4"
 lot: false
 lof: false
 ---
@@ -16,15 +16,15 @@ library("ggsci")
 
 # Généralités
 
-Le risque $\alpha$ retenu sera de 0,05 & la puissance de 0,8. Vu la taille de l'échantillon l'hypothèse de normalité peut être retenue.
+Le risque $\alpha$ retenu sera de \num{0.05} & la puissance de \num{0.8}. Vu la taille de l'échantillon l'hypothèse de normalité peut être retenue.
 
 
 
 ## Taille de l'échantillon
 
-Parmi les cas suspects d’\gls{acg} inclus dans l’étude, les cas d'\gls{acg} positif et \gls{acg} négatif seront séparés et la mesure du marqueur diagnostique « \gls{dgno}) » sera réalisée pour chaque sujet et ce afin de calculer un intervalle de confiance unilatéral de 97,5 % pour la limite inférieure de l'aire sous la courbe ROC (\gls{auc}) du marqueur.
+Parmi les cas suspects d’\gls{acg} inclus dans l’étude, les cas d'\gls{acg} positif et \gls{acg} négatif seront séparés et la mesure du marqueur diagnostique « \gls{dgno}) » sera réalisée pour chaque sujet et ce afin de calculer un intervalle de confiance unilatéral de \qty{97.5}{\percent} pour la limite inférieure de l'aire sous la courbe ROC (\gls{auc}) du marqueur.
 
-La valeur de l'\gls{auc} de l'échantillon est supposée être de 0,8 (bon marqueur). La méthode de calcul de l'erreur standard donnée par \textsc{Hanley} et \textsc{McNeil} (package `MKmisc`[@mkmisc]) sera utilisée pour calculer la limite de l'intervalle de confiance.
+La valeur de l'\gls{auc} de l'échantillon est supposée être de \num{0.8} (bon marqueur). La méthode de calcul de l'erreur standard donnée par \textsc{Hanley} et \textsc{McNeil} (package `MKmisc`[@mkmisc]) sera utilisée pour calculer la limite de l'intervalle de confiance.
 
 Pour produire un intervalle de confiance avec une distance de l'\gls{auc} de \num{0.075} à la limite inférieure, le nombre de sujets nécessaires sera de 57 dans le groupe \gls{acg} positif et de 133 dans le groupe \gls{acg} négatif (prévalence de l’\gls{acg} positif parmi les cas suspects = 0,3) soit 190 patients au total.
 
@@ -32,12 +32,7 @@ Un nombre important de patients a une atteint bilatérale, l’unité statistiqu
 
 ## Données manquantes
 
-Le décompte des données manquantes sera réalisé & présenté par un tableau ou un graphique. Les variables comportant trop de données manquantes (plus de 40 %) ou non utilisables ne seront pas prises en compte après validation par le promoteur. Les cas où la mesure du \gls{dgno} n'est pas notée seront exclus. Sinon les données manquantes seront imputées (imputations multiples, 150 itérations au maximum --- package `missmDA`[@missmda]) si considérées comme manquant de manière complètement aléatoire (`MCAR`) ou manquant de manière aléatoire (`MAR`). Les cas où la mesure du \gls{dgno} n’est pas notée seront exclus.
-
-
-
-
-
+Le décompte des données manquantes sera réalisé & présenté par un tableau ou un graphique. Les variables comportant trop de données manquantes (plus de \qty{40}{\percent}) ou non utilisables ne seront pas prises en compte après validation par le promoteur. Les cas où la mesure du \gls{dgno} n'est pas notée seront exclus. Sinon les données manquantes seront imputées (imputations multiples, 150 itérations au maximum --- package `missmDA`[@missmda]) si considérées comme manquant de manière complètement aléatoire (`MCAR`) ou manquant de manière aléatoire (`MAR`). Les cas où la mesure du \gls{dgno} n’est pas notée seront exclus.
 
 
 # Objectif principal
@@ -45,7 +40,7 @@ Le décompte des données manquantes sera réalisé & présenté par un tableau 
 ## Qualité des mesures
 \label{qual}
 
-Toutes les mesures des investigateurs seront contrôlées par deux experts. On validera la mesure de l'investigateur par la comparaison entre sa mesure & la moyenne des mesures des deux experts & le classement en normal/pathologique. La mesure de l'investigateur sera considérée comme valide si elle diffère de moins de \qty{1}{\mm} de la moyenne des mesures des experts. En cas de divergence c'est la mesure des experts qui sera retenue. 
+Toutes les mesures des investigateurs seront contrôlées par deux experts. Ceux ci sont désignés par randomisation parmi une liste de trois experts (table de randomisation). On validera la mesure de l'investigateur par la comparaison entre sa mesure & la moyenne des mesures des deux experts & le classement en normal/pathologique. La mesure de l'investigateur sera considérée comme valide si elle diffère de moins de \qty{1}{\mm} de la moyenne des mesures des experts. En cas de divergence c'est la mesure des experts qui sera retenue. 
 
 Les différences éventuelles dans les mesures seront recherchées  par un test de \textsc{Kappa-Cohen} (package `irr` [@irr]) en catégorisant les résultats en normal/pathologique avec un seuil admissible à \num{0.4} (accord modéré)[^1].
 
