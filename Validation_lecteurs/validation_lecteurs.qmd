@@ -1,0 +1,27 @@
+---
+title: "PETRUS"
+subtitle: "Validation des participants"
+author: "PhM"
+format: html
+---
+
+
+```{r}
+#| label: setup
+
+rm(list = ls())
+
+library("baseph")
+library("tidyverse")
+library("readODS")
+library("janitor")
+
+```
+
+```{r}
+#| label: import
+
+tt <- read_ods("validation1.ods") |> 
+  clean_names()
+```
+
