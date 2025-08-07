@@ -21,7 +21,64 @@ library("janitor")
 ```{r}
 #| label: import
 
-tt <- read_ods("validation1.ods") |> 
-  clean_names()
+tt <- read_ods("Validation_lecteurs/validation1.ods", na = c("", " ","NA")) |> 
+  clean_names() |> 
+  mutate(across(where(is.character), as.factor)) |> 
+  mutate (id = paste0(nom, "_", coupe))
 ```
+
+```{r}
+#| label: moyennes
+
+# Calcul des moyennes des mesures des experts
+
+coupes <- c("nerf_dt", "gaine_dt", "nerf_gch", "gaine_gch")
+zz <- tt |> 
+   dplyr::select(starts_with("expert")) 
+nc <- 13
+for( nn in coupes){
+zz <- zz|> 
+  rowwise() |> 
+  mutate(xx = mean(c_across(ends_with(nn)), na.rm = TRUE )) |> 
+  ungroup()
+ colnames(zz)[nc] <- paste0("moy_",nn)
+ nc <- nc+1
+}
+moy <- zz |> 
+  dplyr::select(starts_with("moy"))
+
+names(moy) <- str_sub(names(moy),5)
+moy$id <- paste0(tt$id,tt$coupe)
+
+
+moy <- moy |> 
+  pivot_longer(cols = 1:4, values_to = "experts") |> 
+  mutate(id = paste0(id,"_",name))
+```
+
+```{r}
+#| label: comp
+
+# Comparaison moyennes experts/mesure lecteur
+
+comp <- tt |> 
+  dplyr::select(id,nom, starts_with("formation")) |> 
+  pivot_longer(cols = 3:6, values_to = "formation")
+
+tot <- comp |> 
+  left_join(moy, by = "id") |> 
+  mutate(difx = abs(formation-experts)) |> 
+  mutate(validation = as.factor(ifelse(difx>1,"Non validé", "Validé")))
+```
+
+```{r}
+#| label: validation
+
+tot |> 
+  dplyr::filter(validation == "Validé") |> 
+  group_by(nom) |> 
+  count(validation)
+```
+
+
 
