@@ -16,16 +16,8 @@ library(tidyverse)
 library(readODS)
 # 2. Creation de la table ---------------------------------------------------
 
-rr <- c("Dr Al Tabaa, Dr Espita", "Dr Al Tabaa, Dr Ottaviani", "Dr Espita, Dr Ottaviani")
 n <- 40
-zz <- sample(rr,n,replace = T)
 nn <- 1:n
-zz <- as.factor(zz)
-zz <- tibble(nn,zz)
-names(zz) <- c("num_patient", "relecteurs")
-
-# write_ods(zz, path = "relecteurs.ods", sheet = "relecteurs")
-
 centres <- tibble(nn)
 
 for(centre in 1:9){
@@ -41,6 +33,6 @@ for(centre in 1:9){
  names(zz) <- nom
  centres <- cbind(centres,zz)
 }
-
+write_ods(centres, path = "relecteurs_V2.ods", sheet = "relecteurs")
 
 

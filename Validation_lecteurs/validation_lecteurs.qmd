@@ -63,10 +63,11 @@ library("baseph")
 library("tidyverse")
 library("readODS")
 library("janitor")
+library("labelled")
 library("kableExtra")
 
 classeur <- "validation.ods"
-expx <- FALSE
+expx <- TRUE
 if (expx) {
   file.create(classeur)
   file.remove(classeur)
@@ -130,10 +131,10 @@ tbdiff <- tbdiff |>
 zz <- tbdiff |>
   group_by(nom) |>
   summarise(test = sum(valmes), n = n()) |>
-  mutate("résultat" = paste0(test, "/", n)) |>
-  mutate(centre = str_sub(nom, -2)) |>
-  mutate(nom = str_sub(nom, 0, -4)) |>
-  dplyr::select(nom, centre, "résultat")
+  mutate("Bonnes réponses n/N (%)" = paste0(test, "/", n, " (",round(100*test/n,1)," %)")) |> 
+  mutate(Centre = str_sub(nom, -2)) |>
+  mutate(Nom = str_sub(nom, 0, -4)) |>
+  dplyr::select(Nom, Centre, "Bonnes réponses n/N (%)")
 #
 zz |>   
   kbl() |>
@@ -145,7 +146,10 @@ zz |>
 if(expx){
   zz |> 
   as_tibble() |>
-        write_ods(path = classeur, sheet = "Validation", append = TRUE)}
+        write_ods(path = classeur, 
+                  sheet = "Validation", 
+                  append = TRUE)
+  }
 ```
 
 

@@ -38,11 +38,10 @@ warning: false
 message: false
 cache: true
 website:
-  title: "COPSCA"
+  title: "PETRUS"
   sidebar:
    style: "docked"
    search: true
    contents:
-     - text: "AA"
      - contents: auto
 

@@ -9,3 +9,4 @@
 
 
 - **03/04/2025** Plan d’analyse complet 
+- **14/08/2025** Validation des lecteurs
