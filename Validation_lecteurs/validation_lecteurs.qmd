@@ -1,13 +1,61 @@
 ---
 title: "PETRUS"
-subtitle: "Validation des participants"
-author: "PhM"
-format: html
+subtitle: "Validation des lecteurs V1.1"
+date: today
+date-format: "DD MMMM YYYY"
+lang: fr
+language:
+  title-block-author-single: "Auteur"
+author:
+  - name: "D<sup>r</sup> Philippe MICHEL"
+    orcid: "0000-0003-2392-7186"
+    email: "philippe.michel@ght-novo.fr"
+    role: "Statisticien"
+    affiliations:
+      name: "USRC - Hôpital NOVO"
+      city: Pontoise
+      department: "Unité de Soutien à la Recherche Clinique"
+
+title-block-banner: "#26474a"
+title-block-banner-color: white
+format:
+  html:
+    appendix-style: default
+    embed-resources: true
+    theme: flatly
+    code-fold: true
+    code-line-numbers: true
+    html-math-method: katex
+    highlight-style: ayu
+    page-layout: full
+    toc: true
+    number-sections: true
+    smooth-scroll: true
+    citation-hover: true
+bibliography: stat.bib
+csl: jama.csl
+license: "CC BY-SA"
+warning: false
+message: false
+cache: true
+website:
+  title: "COPSCA"
+  sidebar:
+   style: "docked"
+   search: true
+   contents:
+     - text: "AA"
+     - contents: auto
 ---
 
+Pour chaque coupe la moyenne des mesures des experts a été calculée. La mesure des lecteurs est refusée si elle a plus de 1 mm d'écart avec la moyenne des mesures des experts. 
+
+Pour chaque candidat on observe une ou deux erreurs. Il reste à fixer un nombre d'erreurs acceptables.
 
 ```{r}
 #| label: setup
+
+# setup
 
 rm(list = ls())
 
@@ -15,17 +63,46 @@ library("baseph")
 library("tidyverse")
 library("readODS")
 library("janitor")
+library("kableExtra")
 
+classeur <- "validation.ods"
+expx <- FALSE
+if (expx) {
+  file.create(classeur)
+  file.remove(classeur)
+  write_ods(iris, classeur)
+}
 ```
 
 ```{r}
 #| label: import
 
-tt <- read_ods("Validation_lecteurs/validation1.ods", na = c("", " ","NA")) |> 
-  clean_names() |> 
-  mutate(across(where(is.character), as.factor)) |> 
-  mutate (id = paste0(nom, "_", coupe))
+# Importation & mise en forme des données
+
+#tt1 <- read_ods("Validation_lecteurs/validation1.ods", na = c("", " ","NA")) |> 
+ tt1 <- read_ods("validation1.ods", na = c("", " ", "NA")) |>
+   clean_names() |>
+   mutate(across(where(is.character), as.factor)) |>
+   mutate(id = paste0(nom, "_", coupe))
 ```
+
+```{r}
+#| label: macro-moy
+
+# Macro calcul des moyennes
+
+expt <- function(df = tt1, coupe) {
+  zz <- df |>
+    dplyr::select(nom, ends_with(coupe)) |>
+    rowwise() |>
+    mutate(mes_exp = mean(c_across(3:5), na.rm = T)) |>
+    ungroup() |>
+    dplyr::select(-starts_with("expert"))
+  names(zz) <- c("nom", "form", "expert")
+  return(zz)
+}
+```
+
 
 ```{r}
 #| label: moyennes
@@ -33,51 +110,42 @@ tt <- read_ods("Validation_lecteurs/validation1.ods", na = c("", " ","NA")) |>
 # Calcul des moyennes des mesures des experts
 
 coupes <- c("nerf_dt", "gaine_dt", "nerf_gch", "gaine_gch")
-zz <- tt |> 
-   dplyr::select(starts_with("expert")) 
-nc <- 13
-for( nn in coupes){
-zz <- zz|> 
-  rowwise() |> 
-  mutate(xx = mean(c_across(ends_with(nn)), na.rm = TRUE )) |> 
-  ungroup()
- colnames(zz)[nc] <- paste0("moy_",nn)
- nc <- nc+1
+tbdiff <- NULL
+for (i in coupes) {
+  zz <- expt(tt1, i)
+  tbdiff <- rbind(tbdiff, zz)
 }
-moy <- zz |> 
-  dplyr::select(starts_with("moy"))
-
-names(moy) <- str_sub(names(moy),5)
-moy$id <- paste0(tt$id,tt$coupe)
-
-
-moy <- moy |> 
-  pivot_longer(cols = 1:4, values_to = "experts") |> 
-  mutate(id = paste0(id,"_",name))
+tbdiff <- tbdiff |>
+  rowwise() |>
+  mutate(valmes = if_else(abs(form - expert) > 1, 0, 1)) |>
+  ungroup()
 ```
 
-```{r}
-#| label: comp
 
-# Comparaison moyennes experts/mesure lecteur
-
-comp <- tt |> 
-  dplyr::select(id,nom, starts_with("formation")) |> 
-  pivot_longer(cols = 3:6, values_to = "formation")
-
-tot <- comp |> 
-  left_join(moy, by = "id") |> 
-  mutate(difx = abs(formation-experts)) |> 
-  mutate(validation = as.factor(ifelse(difx>1,"Non validé", "Validé")))
-```
 
 ```{r}
 #| label: validation
 
-tot |> 
-  dplyr::filter(validation == "Validé") |> 
-  group_by(nom) |> 
-  count(validation)
+# Résultats par lecteur
+zz <- tbdiff |>
+  group_by(nom) |>
+  summarise(test = sum(valmes), n = n()) |>
+  mutate("résultat" = paste0(test, "/", n)) |>
+  mutate(centre = str_sub(nom, -2)) |>
+  mutate(nom = str_sub(nom, 0, -4)) |>
+  dplyr::select(nom, centre, "résultat")
+#
+zz |>   
+  kbl() |>
+  kable_material(
+    full_width = FALSE,
+    bootstrap_options = c("striped", "hover")
+  ) 
+# Export 
+if(expx){
+  zz |> 
+  as_tibble() |>
+        write_ods(path = classeur, sheet = "Validation", append = TRUE)}
 ```
 
 
