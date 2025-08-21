@@ -15,7 +15,6 @@ author:
       name: "USRC - Hôpital NOVO"
       city: Pontoise
       department: "Unité de Soutien à la Recherche Clinique"
-
 title-block-banner: "#26474a"
 title-block-banner-color: white
 format:
@@ -44,13 +43,43 @@ website:
    style: "docked"
    search: true
    contents:
-     - text: "AA"
+     - text: ""
      - contents: auto
+editor: 
+  markdown: 
+    wrap: 72
 ---
 
-Pour chaque coupe la moyenne des mesures des experts a été calculée. La mesure des lecteurs est refusée si elle a plus de 1 mm d'écart avec la moyenne des mesures des experts. 
+:::: panel-tabset
+# Introduction
 
-Pour chaque candidat on observe une ou deux erreurs. Il reste à fixer un nombre d'erreurs acceptables.
+::: {.callout-tip title="Évaluation de la gaine du nerf optique par échographie dans l'Artérite à Cellules géantes"}
+
+Recherche non interventionnelle ne comportant aucun risque ni contrainte
+
+Étude diagnostique non interventionnelle, prospective multicentrique
+
+
+
+**Investigateur Coordonnateur** <br>Omar AL TABAA --- Rhumatologie 
+Hôpital NOVO (Site de Pontoise)
+
+**Comité scientifique**<br>
+Maxime SANSOM --- Service de médecine interne CHU Dijon<br>
+Sébastien OTTAVIANI --- Service de rhumatologie hôpital Bichat
+(Paris)<br>
+Olivier ESPITIA --- Service de médecine vasculaire CHU Nantes
+
+**Chef de projet** <br>Mathilde WLODARCZYK
+
+**Méthodologiste**<br> Chrystelle VIDAL --- GIRCI Île de France
+
+**Data-manager**<br>Nathanaël CHARRIER
+
+**Statisticien**<br>Philippe MICHEL
+:::
+
+
 
 ```{r}
 #| label: setup
@@ -65,6 +94,8 @@ library("readODS")
 library("janitor")
 library("labelled")
 library("kableExtra")
+library("gtsummary")
+library("ggsci")
 
 classeur <- "validation.ods"
 expx <- TRUE
@@ -73,6 +104,7 @@ if (expx) {
   file.remove(classeur)
   write_ods(iris, classeur)
 }
+expx = FALSE
 ```
 
 ```{r}
@@ -104,6 +136,163 @@ expt <- function(df = tt1, coupe) {
 }
 ```
 
+# Contrôle cohérence des experts
+
+## Écarts des mesures
+
+On commence dans un premier temps par vérifier la cohérence des mesures
+des experts en s'assurant que la différence entre les trois mesures ne
+dépasse pas un millimètre.
+
+```{r}
+#| label: verif-prepa
+
+expl <- function(mot, anat = "x") {
+  aa <- tt1 |>
+    dplyr::select(contains("expert")) |>
+    dplyr::select(contains(mot)) |>
+    mutate(anat = anat)
+  names(aa) <- c(paste0("expert_", 1:3), "localisation")
+  return(aa)
+}
+
+loc <- c("nerf_dt", "nerf_gch", "gaine_dt", "gaine_gch")
+expn <- NULL
+#
+for (i in loc) {
+  ann <- str_split(i, "_", simplify = TRUE)[1]
+  xx <- expl(i, ann)
+  expn <- rbind(expn, xx)
+}
+
+expn <- expn |> 
+rowwise() |>
+  mutate(ecart = max(c_across(1:3), na.rm = TRUE) - min(c_across(1:3), na.rm = TRUE)) |> 
+ungroup() |> 
+  mutate(concordant = if_else(ecart < 1, "Oui", "Non"))
+```
+
+```{r}
+#| label: tbl-exp1
+#| tbl-cap: Concordance des mesures des experts
+
+expn |> 
+  dplyr::select(localisation, concordant) |> 
+  tbl_summary(by = localisation) |> 
+  add_overall(col_label = "**total**  \nN = {style_number(N)}",) |> 
+  modify_header(label ~ " ") |>
+bold_labels() |>
+pexptabph(nomfich = classeur,
+nomsheet = "exp1",
+exp = expx) 
+
+```
+
+```{r}
+#| label: fig-exp1
+#| fig-cap: Concordance des mesures des experts
+
+expn |> 
+  ggplot() +
+  aes(x = localisation, y = ecart, fill = localisation) +
+  geom_violin() +
+  geom_boxplot(width = 0.2,fill = "grey90") +
+  geom_hline(yintercept = 1, col = "red", linetype = "dotdash") +
+  labs(title = "Concordance des mesures des experts",
+      subtitle = "Selon la mesure",
+      x = "Localisation",
+      y = "Écart des mesures (mm)",
+      caption = "",
+      fill = "") +
+  theme_light() +
+  scale_fill_jama() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(
+      size = 12,
+      angle = 90,
+      vjust = .5
+    ),
+  axis.text.x = element_text(size = 12),
+  axis.text.y = element_text(size = 12),
+  legend.position = "none"
+  )
+
+```
+
+## Tendances
+
+On recherche ici si un des experts aurait une tendance à sur ou
+sous-évaluer ses mesures.
+
+```{r}
+#| label: tend-prepa
+
+zz <- tt1 |> 
+  dplyr::select(starts_with("expert")) |> 
+  pivot_longer(everything())
+#
+nn <- str_split(zz$name,"_",simplify = TRUE)
+#
+zz <- zz |> 
+  mutate(expert = paste0(nn[,1],"_",nn[,2])) |> 
+  mutate(mesure = nn[,3]) |> 
+  dplyr::select(- name)
+```
+
+```{r}
+#| label: tbl-tend1
+#| tbl-cap: Mesures des trois experts
+
+zz |> 
+  tbl_continuous(
+    variable = value,
+    include = expert,
+    by = mesure
+  ) |> 
+  modify_header(label ~ " ") |>
+bold_labels() |>
+pexptabph(nomfich = classeur,
+nomsheet = "tend1",
+exp = expx) 
+```
+
+```{r}
+#| label: fig-tend1
+#| fig-cap: Mesures des trois experts
+
+zz |> 
+  ggplot() +
+  aes(x = expert, y = value, fill = mesure) +
+  geom_boxplot() +
+  labs(title = "Mesures par expert",
+      subtitle = "",
+      y = "mm",
+      caption = "",
+      fill = "") +
+  theme_light() +
+  scale_fill_jama() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title.x = element_blank(),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(
+      size = 12,
+      angle = 90,
+      vjust = .5
+    ),
+  axis.text.x = element_text(size = 12),
+  axis.text.y = element_text(size = 12),
+  legend.position = "top"
+  )
+
+```
+
+# Validation des lecteurs
 
 ```{r}
 #| label: moyennes
@@ -121,8 +310,6 @@ tbdiff <- tbdiff |>
   mutate(valmes = if_else(abs(form - expert) > 1, 0, 1)) |>
   ungroup()
 ```
-
-
 
 ```{r}
 #| label: validation
@@ -151,6 +338,4 @@ if(expx){
                   append = TRUE)
   }
 ```
-
-
-
+::::
