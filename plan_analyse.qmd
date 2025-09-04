@@ -1,7 +1,8 @@
 ---
-subtitle: "Plan d'analyse statistique - V1.4"
+subtitle: "Plan d'analyse statistique - V1.3"
 lot: false
 lof: false
+eval: false
 ---
 
 ```{r info}
@@ -16,15 +17,13 @@ library("ggsci")
 
 # Généralités
 
-Le risque $\alpha$ retenu sera de \num{0.05} & la puissance de \num{0.8}. Vu la taille de l'échantillon l'hypothèse de normalité peut être retenue.
-
-
+Le risque $\alpha$ retenu sera de 0,05 & la puissance de 0,8. Vu la taille de l'échantillon l'hypothèse de normalité peut être retenue.
 
 ## Taille de l'échantillon
 
-Parmi les cas suspects d’\gls{acg} inclus dans l’étude, les cas d'\gls{acg} positif et \gls{acg} négatif seront séparés et la mesure du marqueur diagnostique « \gls{dgno}) » sera réalisée pour chaque sujet et ce afin de calculer un intervalle de confiance unilatéral de \qty{97.5}{\percent} pour la limite inférieure de l'aire sous la courbe ROC (\gls{auc}) du marqueur.
+Parmi les cas suspects d’\gls{acg} inclus dans l’étude, les cas d'\gls{acg} positif et \gls{acg} négatif seront séparés et la mesure du marqueur diagnostique « \gls{dgno}) » sera réalisée pour chaque sujet et ce afin de calculer un intervalle de confiance unilatéral de 97,5 % pour la limite inférieure de l'aire sous la courbe ROC (\gls{auc}) du marqueur.
 
-La valeur de l'\gls{auc} de l'échantillon est supposée être de \num{0.8} (bon marqueur). La méthode de calcul de l'erreur standard donnée par \textsc{Hanley} et \textsc{McNeil} (package `MKmisc`[@mkmisc]) sera utilisée pour calculer la limite de l'intervalle de confiance.
+La valeur de l'\gls{auc} de l'échantillon est supposée être de 0,8 (bon marqueur). La méthode de calcul de l'erreur standard donnée par \textsc{Hanley} et \textsc{McNeil} (package `MKmisc`[@mkmisc]) sera utilisée pour calculer la limite de l'intervalle de confiance.
 
 Pour produire un intervalle de confiance avec une distance de l'\gls{auc} de \num{0.075} à la limite inférieure, le nombre de sujets nécessaires sera de 57 dans le groupe \gls{acg} positif et de 133 dans le groupe \gls{acg} négatif (prévalence de l’\gls{acg} positif parmi les cas suspects = 0,3) soit 190 patients au total.
 
@@ -32,23 +31,135 @@ Un nombre important de patients a une atteint bilatérale, l’unité statistiqu
 
 ## Données manquantes
 
-Le décompte des données manquantes sera réalisé & présenté par un tableau ou un graphique. Les variables comportant trop de données manquantes (plus de \qty{40}{\percent}) ou non utilisables ne seront pas prises en compte après validation par le promoteur. Les cas où la mesure du \gls{dgno} n'est pas notée seront exclus. Sinon les données manquantes seront imputées (imputations multiples, 150 itérations au maximum --- package `missmDA`[@missmda]) si considérées comme manquant de manière complètement aléatoire (`MCAR`) ou manquant de manière aléatoire (`MAR`). Les cas où la mesure du \gls{dgno} n’est pas notée seront exclus.
+Le décompte des données manquantes sera réalisé & présenté par un tableau ou un graphique. Les variables comportant trop de données manquantes ou non utilisables ne seront pas prises en compte après validation par le promoteur. Les cas où la mesure du \gls{dgno} n'est pas notée seront exclus. Sinon les données manquantes seront imputées (\glspl{imput} multiples, 150 itérations au maximum --- package `missMDA`[@missmda]) si considérées comme manquant de manière complètement aléatoire (`MCAR`) ou manquant de manière aléatoire (`MAR`). Les cas où la mesure du \gls{dgno} n’est pas notée seront exclus.
+
+# Validation des experts
+
+La qualité des mesures par les experts sera validée en deux temps : intra (chaque expert vs lui-même) & extra (comparaison des mesures entre les trois experts)
+
+### Validation intra-expert
+
+Chaque expert réalisera une double mesure sur les mesures réalisées par quatre centres. La qualité des mesures sera évaluée tout d'abord en recherchant des mesures aberrantes, c'est à dire une différence supérieure à \qty{1}{\mm} entre les deux mesures, puis par le calcul de l'\gls{icc} (ICC à mesure unique --- *one-way random*) (package `irr` [@irr]). Un \gls{icc} \> \num{0.75} sera considéré comme correct.
+
+### Validation entre les experts
+
+On commence par vérifier la cohérence des mesures
+des experts en s'assurant que la différence entre les trois mesures ne
+dépasse pas un millimètre.
+
+Les mesures des trois experts seront alors analysées par une \gls{icc} inter-évaluateurs (modèle à deux facteurs à effets aléatoires --- *two-way random* --- package `irr` [@irr]). Un \gls{icc} \> \num{0.75} sera considéré comme correcte.
+
+```{r}
+#| label: verif-prepa
+
+expl <- function(mot, anat = "x") {
+  aa <- tt1 |>
+    dplyr::select(contains("expert")) |>
+    dplyr::select(contains(mot)) |>
+    mutate(anat = anat)
+  names(aa) <- c(paste0("expert_", 1:3), "localisation")
+  return(aa)
+}
+
+loc <- c("nerf_dt", "nerf_gch", "gaine_dt", "gaine_gch")
+expn <- NULL
+#
+for (i in loc) {
+  ann <- str_split(i, "_", simplify = TRUE)[1]
+  xx <- expl(i, ann)
+  expn <- rbind(expn, xx)
+}
+
+expn <- expn |> 
+rowwise() |>
+  mutate(ecart = max(c_across(1:3), na.rm = TRUE) - min(c_across(1:3), na.rm = TRUE)) |> 
+ungroup() |> 
+  mutate(concordant = if_else(ecart < 1, "Oui", "Non"))
+```
+
+```{r}
+#| label: tbl-exp1
+#| tbl-cap: Concordance des mesures des experts
+
+expn |> 
+  dplyr::select(localisation, concordant) |> 
+  tbl_summary(by = localisation) |> 
+  add_overall(col_label = "**total**  \nN = {style_number(N)}",) |> 
+  modify_header(label ~ " ") |>
+bold_labels() |>
+pexptabph(nomfich = classeur,
+nomsheet = "exp1",
+exp = expx) 
+
+```
+
+```{r}
+#| label: fig-exp1
+#| fig-cap: Concordance des mesures des experts
+
+expn |> 
+  ggplot() +
+  aes(x = localisation, y = ecart, fill = localisation) +
+  geom_violin() +
+  geom_boxplot(width = 0.2,fill = "grey90") +
+  geom_hline(yintercept = 1, col = "red", linetype = "dotdash") +
+  labs(title = "Concordance des mesures des experts",
+      subtitle = "Selon la mesure",
+      x = "Localisation",
+      y = "Écart des mesures (mm)",
+      caption = "",
+      fill = "") +
+  theme_light() +
+  scale_fill_jama() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(
+      size = 12,
+      angle = 90,
+      vjust = .5
+    ),
+  axis.text.x = element_text(size = 12),
+  axis.text.y = element_text(size = 12),
+  legend.position = "none"
+  )
+
+```
+
+## Technique de mesure
+
+Deux techniques de mesure sont envisagées avec une position différente du curseur de profondeur : à l’interface avec le vitré vs la technique habituelle. 
+
+### Nouvelle vs ancienne technique
+
+La comparaison des résultats entre la technique habituelle & la nouvelle sera faite en comparant pour les résultats des trois experts: 
+
+-  La moyenne & l'intervalle de confiance à \qty{95}{\percent} des mesures par technique (diagramme de Bland & Altmann) pour chaque site & chaque patient.
+-  Le \gls{icc} (modèle à un facteurs à effets aléatoires --- *one-way random*) sera calculé (package `irr` [@irr]). Un \gls{icc} \> \num{0.75} sera considéré comme correct.
 
 
-# Objectif principal
 
-## Qualité des mesures
-\label{qual}
 
-Toutes les mesures des investigateurs seront contrôlées par deux experts. Ceux ci sont désignés par randomisation parmi une liste de trois experts (table de randomisation). On validera la mesure de l'investigateur par la comparaison entre sa mesure & la moyenne des mesures des deux experts & le classement en normal/pathologique. La mesure de l'investigateur sera considérée comme valide si elle diffère de moins de \qty{1}{\mm} de la moyenne des mesures des experts. En cas de divergence c'est la mesure des experts qui sera retenue. 
+
+# Phase 1
+
+## Qualification des intervenants
+
+*Chaque centre réalisera 10 coupes d’échographie orbitaire avec mesure du nerf optique qui seront relues par 3 experts afin d’analyser la concordance inter-observateur*
+
+La différence du \gls{dgno} entre les sujets sains & malades serait selon la littérature de \qty{2}{\mm}. On prend donc comme écart de mesure acceptable entre deux cliniciens \qty{1}{\mm}. Les cas de divergences supérieures seront notées en précisant s'il s'agit de résultats qui sont tous deux dans la zone *saine*, *malade* ou introduisant un doute. On considère correct un investigateur qui a ai plus trois erreurs sur les quarante mesures. 
 
 Les différences éventuelles dans les mesures seront recherchées  par un test de \textsc{Kappa-Cohen} (package `irr` [@irr]) en catégorisant les résultats en normal/pathologique avec un seuil admissible à \num{0.4} (accord modéré)[^1].
 
- [^1]: Le seuil a été choisi bas en raison de la faible taille des échantillons.
- 
- La qualité des mesures des investigateurs sera vérifiée par une comparaison (diagramme de Bland & Altmann) entre la mesure réalisée dans les centres & la moyenne des mesures de deux experts. Puis une analyse en sensibilité/spécificité sera réalisée en prenant la mesure des experts comme gold-standard. Le \gls{icc} inter-évaluateurs (modèle à deux facteurs à effets aléatoires --- two-way random) sera calculé (package `irr` [@irr]). Un \gls{icc} \> \num{0.75} sera considéré comme correct.
- 
- 
+ [^1]: Le seuil a été choisi bas en raison de la faible taille des échantillons (10 cas).
+
+La qualification des intervenant (analyse de concordance - stop and go) sera vérifiée sur les 60 premiers cas par une comparaison (diagramme de Bland & Altmann) entre la mesure réalisée dans les centres & la moyenne des mesures des trois experts. Puis une analyse en sensibilité/spécificité sera réalisée en prenant la mesure des expert comme gold-standard. Le \gls{icc} inter-évaluateurs (modèle à deux facteurs à effets aléatoires --- *two-way random*) sera calculé (package `irr` [@irr]). Un \gls{icc} \> \num{0.75} sera considéré comme correct.
+
+Si pour certains centres les mesures semblent incorrectes l'information sera transmise à l'investigateur coordonnateur qui jugera comment gérer les résultats de ces centres pour la suite de l'étude (exclusion du centre, poursuite du contrôle par les experts\dots).
+
+Cette première phase concerne 60 patients.
 
 ```{r}
 #| label: prepa_bland
@@ -144,7 +255,11 @@ zz |>
     axis.text.y = element_text(size = 12),
     legend.position = "right"
     )
+
+
 ```
+
+
 
 ```{r}
 #| eval: false
@@ -154,19 +269,27 @@ tt |>
 icc(
   model = "twoway", 
   type = "agreement", unit = "single"
-  )œœ
+  )
+
+cht
+
+
+ 
+
 ```
 
 
 
-## Validation de la méthode diagnostique
+# Phase 2
+
+## Objectif principal
 
 La validation du marqueur sera obtenue par l'étude de l'\gls{auc} sur une courbe ROC (package `pROC` [@proc]) calculée avec :
 
 -   Valeur mesurée : le \gls{dgno} mesuré par le clinicien expert à l'inclusion;
 -   Diagnostic de référence : celui réalisé par le clinicien expert à six mois (deux classes : malade/sain).
 
-Une limite acceptable sera une \gls{auc} \> \num{0.8}. L’erreur standard sera calculée par la méthode de \textsc{Hanley} et \textsc{McNeil} (package `MKmisc` [@mkmisc]) avec une erreur admissible à \num{0.075}. Des intervalles de confiance par zone (méthode de \textsc{Clopper} & \textsc{Pearson}) seront tracés autour des probables points d'inflexion ainsi que la valeur de \qty{2}{\mm} habituellement retenue dans la littérature.
+Une limite acceptable sera une \gls{auc} \> \num{0.8}. L’erreur standard sera calculée par la méthode de \textsc{Hanley} et \textsc{McNeil} (package `MKmisc` [@mkmisc]) avec une erreur admissible à \num{0.075}. Des intervalles de confiance par zone (méthode de \textsc{Clopper} & \textsc{Pearson}) seront tracés autour des probables points d'inflexion.
 
 # Objectifs secondaires
 
@@ -174,7 +297,7 @@ Une limite acceptable sera une \gls{auc} \> \num{0.8}. L’erreur standard sera 
 
 *Évaluer la fiabilité des mesures du* \gls{dgno} à l’échographie.
 
-Cet objectif reprend les méthodes du contrôle de qualité (section \ref{qual}).
+Cet objectif reprend les objectifs de la phase I (section \ref{phase-1}) en appliquant les méthodes sur l'échantillon complet.
 
 ## Objectif 2
 
@@ -190,34 +313,31 @@ Les indicateurs classiques de performance diagnostiques seront présentés (sens
 
 *Étudier l’évolution du* \gls{dgno} sous traitement entre M0 et M6 pour les patients présentant une \gls{acg}.
 
-La mesure de la \gls{dgno} sera réalisée à M0 & M6 pour chaque patient présentant une \gls{acg}. Les mesures seront présentées en moyenne, écart-type & intervalle de confiance aux deux temps puis comparées par un test de Student pour séries appariées.
+La mesure de la \gls{dgno} sera réalisée à M0 & M6 pour chaque patient. Les mesures seront présentées en moyenne, écart-type & intervalle de confiance aux deux temps puis comparées par un test de Student pour séries appariées.
 
 ## Objectif 4
 
-*Évaluation exploratoire du* \gls{dgno} en fonction de la présence ou non d’une \gls{acg} crânienne ou extra crânienne.
+*Évaluation exploratoire du* \gls{dgno} en fonction de la présence ou non d’une \gls{acg} extra crânienne.
 
-Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg} crânienne, \gls{acg} extra-crânienne, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis deux par deux si l'analyse globale le permet en insistant sur la comparaison \gls{acg} crânienne vs \gls{acg} extra-crânienne (analyse post-hoc --- package `emmeans`[@emmeans]).
+Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg} crânienne, \gls{acg} extra-crânienne, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis en insistant sur la comparaison \gls{acg} crânienne vs \gls{acg} extra-crânienne (test du t de Student).
 
 ## Objectif 5
 
 *Évaluation exploratoire du* \gls{dgno} selon la présence ou non d’une \gls{acg} avec atteinte visuelle.
 
-Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg} avec atteinte visuelle, \gls{acg} sans atteinte visuelle, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis deux par deux si l'analyse globale le permet en insistant sur la comparaisonn \gls{acg} avec atteinte visuelle, \gls{acg} sans atteinte visuelle (analyse post-hoc --- package `emmeans`[@emmeans]).
-.
+Les patients seront classés en sous groupes à six mois par le clinicien : \gls{acg} avec atteinte visuelle, \gls{acg} sans atteinte visuelle, \gls{acg} négatif. Les mesures de la \gls{dgno} seront comparées entre les trois groupes (\gls{anova}) puis en insistant sur la comparaison \gls{acg} avec atteinte visuelle, \gls{acg} sans atteinte visuelle, (test du t de Student).
 
 ## Objectif 6
 
-*Décrire la file active des patients*
+*Étudier la faisabilité de l’échographie comme outil diagnostic de l'\gls{acg}.*
 
-Une description de la population sera réalisée (critères cliniques, démographiques\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression linéaire sera réalisée : \gls{dgno} vs malades/sains & tous les critères démographiques ou cliniques ayant un p \< \num{0.2}. Le modèle sera affiné par une analyse en step-by-step descendant basé sur l'\textsc{aic}
-
-De la même manière une description simple des examens (durée moyenne, nombre et le pourcentage d’examens réalisés, nombre et le pourcentage d’examens interprétables\dots) sera réalisée.
+Une description de la population sera réalisée (critères cliniques, démographiques\dots) avec recherche de différence sur la mesure du \gls{dgno}. Si des critères semblent influer cette mesure une analyse en régression linéaire sera réalisée : \gls{dgno} vs malades/sains & tous les critères démographiques ou cliniques ayant un p \< \num{0.2}. Le modèle sera affiné par une analyse en step-by-step descendant basé sur l'\gls{aic}.
 
 # Technique {.appendix}
 
-L'analyse statistique sera réalisée avec le logiciel **R**[@rstat] & divers packages. Outre ceux cités dans le texte on utilisera en particulier `tidyverse` [@tidy] & `baseph` [@baseph].
+L'analyse statistique sera réalisée avec le logiciel **R**[@rstat] & divers packages. Outre ceux cités dans le texte ou utilisera en particulier `tidyverse` [@tidy] & `baseph` [@baseph].
 
-Un dépôt GitHub sera utilisé qui ne comprendra que le code & non les données ou résultats. Au besoin un faux tableau de données sera créé pour permettre des tests.
+Un dépôt GitHub sera utilisé qui ne comprendra que le code & non les données ou résultats. Au besoin un faux tableau de données sera présenté pour permettre des tests.
 
 <https://github.com/philippemichel/PETRUS>
 

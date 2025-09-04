@@ -1,6 +1,6 @@
 ---
 title: "PETRUS"
-subtitle: "Validation des lecteurs V1.1"
+subtitle: "Validation des lecteurs V1."
 date: today
 date-format: "DD MMMM YYYY"
 lang: fr

@@ -1,0 +1,231 @@
+---
+subtitle: "Double lecture & technique V0.2\n DONNÉES INCOMPLÈTES"
+cache: false
+---
+::: panel-tabset
+
+```{r}
+#| label: setup
+
+library("tidyverse")
+library("janitor")
+library("labelled")
+library("baseph")
+library("gtsummary")
+#
+load("datas/dlect.RData")
+
+classeur <- "double_lecture.ods"
+expx <- FALSE
+if (expx) {
+  file.create(classeur)
+  file.remove(classeur)
+  write_ods(iris, classeur)
+}
+
+# sessionInfo()
+theme_gtsummary_language(language = "fr", decimal.mark = ",")
+theme_gtsummary_journal(journal = "jama")
+options(OutDec = ",")
+ptest <- list(all_continuous() ~ "t.test", all_categorical() ~ "chisq.test")
+stt <- list(
+  all_continuous() ~ "{mean} ({sd})",
+  all_categorical() ~ "{n}/{N} ({p}%)"
+)
+```
+
+# Valeurs brutes
+
+Le premier tableau donne les différences entre la mesure 1 & la mesure 2 pour les mêmes coupes, par expert pour les nerfs & les gaines.
+
+```{r}
+#| label: tbl-valeurs
+#| tbl-cap: Mesures des experts
+
+zz <- tt |> 
+  mutate(coupe2 = paste(coupe, "_",expert)) |> 
+  dplyr::select(relecture:coupe2) |> 
+  pivot_wider(names_from = relecture, values_from = nerf_dt:gaine_gch) |> 
+  mutate(dif_ndt = abs(nerf_dt_2 - nerf_dt_1)) |>
+  mutate(dif_ngch = abs(nerf_gch_2 - nerf_gch_1)) |>
+  mutate(dif_gdt = abs(gaine_dt_2 - gaine_dt_1)) |>
+  mutate(dif_ngch = abs(gaine_gch_2 - gaine_gch_1)) 
+
+nom <- str_split_fixed(zz$coupe2,pattern = "_",n = 2)
+nom <- rep(nom[,2],2)
+dnf <- c(zz$dif_ndt, zz$dif_ngch)
+dgn <- c(zz$dif_gdt, zz$dif_ngch)
+zz <- tibble(nom,dnf,dgn) 
+var_label(zz) <- c("Nom","Nerf optique", "Gaine du nerf optique")
+zz |> 
+  tbl_summary(by = nom,
+              type = all_continuous() ~ "continuous2",
+    statistic = all_continuous() ~ c(
+      "{mean} ± {sd}",
+      "{min}, {max}"
+  )) |> 
+ # add_ci() |> 
+  add_p() |> 
+  modify_header(label = "**Différence des mesures**") |> 
+      add_overall(col_label = "**Total**") |> 
+    bold_labels() |>
+    bold_p() |> 
+  pexptabph(exp = expx, nomfich = classeur, nomsheet = "dif1", lg = FALSE)
+```
+
+## ICC
+
+On calcule l'ICC inter-évaluateurs (modèle à un facteurs à effets aléatoires — one-way random) pour vérifier qu'il n'y a pas de différence entre les trois experts. 
+
+
+
+```{r}
+#| eval: true
+
+library("irr")
+aa <- zz |> 
+pivot_longer(cols = c(dnf,dgn), names_to = "mesure", values_to = "dif") |> 
+  mutate(nom= as.factor(nom)) |>
+  mutate(id = 1:120) |> 
+  dplyr::select(!mesure) |> 
+  pivot_wider(names_from = nom, 
+              values_from = dif)  |> 
+  dplyr::select(!id)
+
+
+
+icc(aa,
+  model = "oneway", 
+  type = "agreement", unit = "single"
+  )
+```
+
+
+# Technique
+
+## Comparaison des deux techniques
+
+### Comapraison globale
+
+```{r}
+#| label: tech-prepa
+
+aa <- tc |> 
+  mutate(coupe2 = paste(coupe, "_",expert)) |> 
+  dplyr::select(technique,nfdt:coupe2) |> 
+  pivot_wider(names_from = technique, values_from = nfdt:gngch) |> 
+  janitor::clean_names() 
+
+zz <- aa |> 
+  mutate(dif_ndt = abs(nfdt_habituelle - nfdt_interface_vitre)) |>
+  mutate(dif_ngch = abs(nfgch_habituelle - nfgch_interface_vitre)) |>
+  mutate(dif_gdt = abs(gndt_habituelle - gndt_interface_vitre)) |>
+  mutate(dif_ngch = abs(gngch_habituelle - gngch_interface_vitre)) 
+
+nom <- str_split_fixed(zz$coupe2,pattern = "_",n = 2)
+nom <- rep(nom[,2],2)
+dnf <- c(zz$dif_ndt, zz$dif_ngch)
+dgn <- c(zz$dif_gdt, zz$dif_ngch)
+zz <- tibble(nom,dnf,dgn) 
+var_label(zz) <- c("Nom","Nerf optique", "Gaine du nerf optique")
+```
+
+```{r}
+#| label: tbl-tch1
+#| tbl-cap: Différences selon la technique
+
+nfh <- c(aa$nfdt_habituelle,aa$nfgch_habituelle)
+nfi <- c(aa$nfdt_interface_vitre,aa$nfgch_interface_vitre)
+gfh <- c(aa$gndt_habituelle,aa$gngch_habituelle)
+gfi <- c(aa$gndt_interface_vitre,aa$gngch_interface_vitre)
+difn <- abs(nfh - nfi)
+difg <- abs(gfh - gfi)
+nom <- str_split_fixed(aa$coupe2,pattern = "_",n = 2)
+nom <- rep(nom[,2],2)
+id <- 1:60
+
+tibble(nfh,nfi) |> 
+  pivot_longer(cols = c(nfh,nfi), names_to = "technique", values_to = "nerf") |> 
+  mutate(technique = fct_recode(technique,
+    "Technique habituelle" = "nfh",
+    "Interface vitré" = "nfi"
+  )) |> 
+ tbl_summary(by = technique) |> 
+    modify_spanning_header(c("stat_1", "stat_2") ~ "**Nerf optique**") |>
+    add_p(test = ptest) |> 
+  modify_header(label = "**Différence des mesures**") |> 
+      add_overall(col_label = "**Total**") |> 
+    bold_labels() |>
+    bold_p() |> 
+  pexptabph(exp = expx, nomfich = classeur, nomsheet = "difnerf", lg = FALSE)
+
+
+tibble(gfh,gfi) |> 
+  pivot_longer(cols = c(gfh,gfi), names_to = "technique", values_to = "nerf") |> 
+  mutate(technique = fct_recode(technique,
+    "Technique habituelle" = "gfh",
+    "Interface vitré" = "gfi"
+  )) |> 
+ tbl_summary(by = technique) |> 
+    modify_spanning_header(c("stat_1", "stat_2") ~ "**Gaine du nerf**") |>
+    add_p(test = ptest) |> 
+  modify_header(label = "**Différence des mesures**") |> 
+      add_overall(col_label = "**Total**") |> 
+    bold_labels() |>
+    bold_p() |> 
+  pexptabph(exp = expx, nomfich = classeur, nomsheet = "difnerf", lg = FALSE)
+
+
+
+
+
+
+```
+
+
+
+On compare les deux techniques par examinateur.
+
+
+
+
+```{r}
+#| label: tbl-techn_exp
+#| tbl-cap: Mesures des experts
+
+zz <- tc |> 
+  mutate(coupe2 = paste(coupe, "_",expert)) |> 
+  dplyr::select(technique,nfdt:coupe2) |> 
+  pivot_wider(names_from = technique, values_from = nfdt:gngch) |> 
+  janitor::clean_names() |>
+  mutate(dif_ndt = abs(nfdt_habituelle - nfdt_interface_vitre)) |>
+  mutate(dif_ngch = abs(nfgch_habituelle - nfgch_interface_vitre)) |>
+  mutate(dif_gdt = abs(gndt_habituelle - gndt_interface_vitre)) |>
+  mutate(dif_ngch = abs(gngch_habituelle - gngch_interface_vitre)) 
+
+nom <- str_split_fixed(zz$coupe2,pattern = "_",n = 2)
+nom <- rep(nom[,2],2)
+dnf <- c(zz$dif_ndt, zz$dif_ngch)
+dgn <- c(zz$dif_gdt, zz$dif_ngch)
+zz <- tibble(nom,dnf,dgn) 
+var_label(zz) <- c("Nom","Nerf optique", "Gaine du nerf optique")
+zz |> 
+  tbl_summary(by = nom,
+              type = everything() ~ "continuous2",
+    statistic = all_continuous() ~ c(
+      "{mean} ± {sd}",
+      "{min}, {max}"
+  )) |> 
+#  add_ci() |> 
+  add_p() |> 
+  modify_header(label = "**Différence selon la méthode**") |> 
+      add_overall(col_label = "**Total**") |> 
+    bold_labels() |>
+    bold_p() |> 
+  pexptabph(exp = expx, nomfich = classeur, nomsheet = "tech1", lg = FALSE)
+```
+
+
+
+
+:::
