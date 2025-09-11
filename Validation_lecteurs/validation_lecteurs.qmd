@@ -1,6 +1,6 @@
 ---
 title: "PETRUS"
-subtitle: "Validation des lecteurs V1."
+subtitle: "Validation des lecteurs V1.2"
 date: today
 date-format: "DD MMMM YYYY"
 lang: fr
@@ -291,6 +291,8 @@ zz |>
   )
 
 ```
+
+# 
 
 # Validation des lecteurs
 

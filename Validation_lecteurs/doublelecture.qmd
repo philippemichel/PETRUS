@@ -1,5 +1,5 @@
 ---
-subtitle: "Double lecture & technique V0.2\n DONNÉES INCOMPLÈTES"
+subtitle: "Double lecture & technique V0.2 -- DONNÉES INCOMPLÈTES"
 cache: false
 ---
 ::: panel-tabset
@@ -28,6 +28,7 @@ theme_gtsummary_language(language = "fr", decimal.mark = ",")
 theme_gtsummary_journal(journal = "jama")
 options(OutDec = ",")
 ptest <- list(all_continuous() ~ "t.test", all_categorical() ~ "chisq.test")
+ptest2 <- list(all_continuous() ~ "paired.t.test", all_categorical() ~ "chisq.test")
 stt <- list(
   all_continuous() ~ "{mean} ({sd})",
   all_categorical() ~ "{n}/{N} ({p}%)"
@@ -62,8 +63,8 @@ zz |>
               type = all_continuous() ~ "continuous2",
     statistic = all_continuous() ~ c(
       "{mean} ± {sd}",
-      "{min}, {max}"
-  )) |> 
+      "{min}, {max}")
+  ) |> 
  # add_ci() |> 
   add_p() |> 
   modify_header(label = "**Différence des mesures**") |> 
@@ -73,14 +74,20 @@ zz |>
   pexptabph(exp = expx, nomfich = classeur, nomsheet = "dif1", lg = FALSE)
 ```
 
+::: {.callout-warning}
+La colonne **Total** est fausse. 
+:::
+
 ## ICC
 
 On calcule l'ICC inter-évaluateurs (modèle à un facteurs à effets aléatoires — one-way random) pour vérifier qu'il n'y a pas de différence entre les trois experts. 
 
-
+::: {.callout-warning}
+Le calcul n'aura de sens qu'avec les résultats de plusieurs lecteurs. Les diffrences demeurent faibles si on prend comme référence le seuil à 1 mm pour valider un lecteur.   
+:::
 
 ```{r}
-#| eval: true
+#| eval: false
 
 library("irr")
 aa <- zz |> 
@@ -105,127 +112,98 @@ icc(aa,
 
 ## Comparaison des deux techniques
 
-### Comapraison globale
+On compare ici les résultats de deux technique de mesure :
+
+- Technique classique
+- Mesure à l'interface du vitré
+
+Cette comparaison permet de mettre en évidence des différences entre les techniques mais absolument pas de valider ou non la nouvelle technique. 
 
 ```{r}
-#| label: tech-prepa
-
-aa <- tc |> 
-  mutate(coupe2 = paste(coupe, "_",expert)) |> 
-  dplyr::select(technique,nfdt:coupe2) |> 
-  pivot_wider(names_from = technique, values_from = nfdt:gngch) |> 
-  janitor::clean_names() 
-
-zz <- aa |> 
-  mutate(dif_ndt = abs(nfdt_habituelle - nfdt_interface_vitre)) |>
-  mutate(dif_ngch = abs(nfgch_habituelle - nfgch_interface_vitre)) |>
-  mutate(dif_gdt = abs(gndt_habituelle - gndt_interface_vitre)) |>
-  mutate(dif_ngch = abs(gngch_habituelle - gngch_interface_vitre)) 
-
-nom <- str_split_fixed(zz$coupe2,pattern = "_",n = 2)
-nom <- rep(nom[,2],2)
-dnf <- c(zz$dif_ndt, zz$dif_ngch)
-dgn <- c(zz$dif_gdt, zz$dif_ngch)
-zz <- tibble(nom,dnf,dgn) 
-var_label(zz) <- c("Nom","Nerf optique", "Gaine du nerf optique")
-```
-
-```{r}
-#| label: tbl-tch1
+#| label: tbl-diftech
 #| tbl-cap: Différences selon la technique
 
-nfh <- c(aa$nfdt_habituelle,aa$nfgch_habituelle)
-nfi <- c(aa$nfdt_interface_vitre,aa$nfgch_interface_vitre)
-gfh <- c(aa$gndt_habituelle,aa$gngch_habituelle)
-gfi <- c(aa$gndt_interface_vitre,aa$gngch_interface_vitre)
-difn <- abs(nfh - nfi)
-difg <- abs(gfh - gfi)
-nom <- str_split_fixed(aa$coupe2,pattern = "_",n = 2)
-nom <- rep(nom[,2],2)
-id <- 1:60
-
-tibble(nfh,nfi) |> 
-  pivot_longer(cols = c(nfh,nfi), names_to = "technique", values_to = "nerf") |> 
-  mutate(technique = fct_recode(technique,
-    "Technique habituelle" = "nfh",
-    "Interface vitré" = "nfi"
-  )) |> 
- tbl_summary(by = technique) |> 
-    modify_spanning_header(c("stat_1", "stat_2") ~ "**Nerf optique**") |>
-    add_p(test = ptest) |> 
-  modify_header(label = "**Différence des mesures**") |> 
-      add_overall(col_label = "**Total**") |> 
-    bold_labels() |>
-    bold_p() |> 
-  pexptabph(exp = expx, nomfich = classeur, nomsheet = "difnerf", lg = FALSE)
-
-
-tibble(gfh,gfi) |> 
-  pivot_longer(cols = c(gfh,gfi), names_to = "technique", values_to = "nerf") |> 
-  mutate(technique = fct_recode(technique,
-    "Technique habituelle" = "gfh",
-    "Interface vitré" = "gfi"
-  )) |> 
- tbl_summary(by = technique) |> 
-    modify_spanning_header(c("stat_1", "stat_2") ~ "**Gaine du nerf**") |>
-    add_p(test = ptest) |> 
-  modify_header(label = "**Différence des mesures**") |> 
-      add_overall(col_label = "**Total**") |> 
-    bold_labels() |>
-    bold_p() |> 
-  pexptabph(exp = expx, nomfich = classeur, nomsheet = "difnerf", lg = FALSE)
-
-
-
-
-
-
+dd <- tc |>
+  dplyr::select(coupe, technique, expert, nfdt, gndt) |>
+  mutate(id = paste0(coupe, expert, "-dt"))
+names(dd) <- c("coupe", "technique", "expert", "nerf", "gaine", "id")
+#
+gg <- tc |>
+  dplyr::select(coupe, technique, expert, nfgch, gngch) |>
+  mutate(id = paste0(coupe, expert, "-gch"))
+names(gg) <- c("coupe", "technique", "expert", "nerf", "gaine", "id")
+dg <- rbind(dd, gg)
+var_label(dg$nerf) <- "Diamètre nerf optique (mm)"
+var_label(dg$gaine) <- "Diamètre gaine du nerf optique (mm)"
+#
+dg |> 
+  dplyr::select(technique, nerf,gaine,id) |>
+  tbl_summary(by = technique,
+              include = -id,
+              type = all_continuous() ~ "continuous2",
+              statistic = all_continuous() ~ c(
+                "{mean} ± {sd}",
+                "{min}, {max}"),, 
+              missing = "no")|>
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Nerf optique**") |>
+  add_p(
+    test = list(all_continuous() ~ "paired.t.test"),
+    group = id
+  ) |> 
+   modify_header(label = "****") |>
+  bold_labels() |> 
+  bold_p() |> 
+  pexptabph(exp = expx, nomfich = classeur, nomsheet = "diftech", lg = FALSE)
 ```
 
-
-
-On compare les deux techniques par examinateur.
-
-
-
+Pour la mesure du diamètre du nerf optique, la mesure par la technique *habituelle* est systématiquement plus haute que par la technique *Interface vitrée*. 
 
 ```{r}
-#| label: tbl-techn_exp
-#| tbl-cap: Mesures des experts
+#| label: fig-techbland
+#| fig-cap: Comparaison des deux techniques (nerf)
 
-zz <- tc |> 
-  mutate(coupe2 = paste(coupe, "_",expert)) |> 
-  dplyr::select(technique,nfdt:coupe2) |> 
-  pivot_wider(names_from = technique, values_from = nfdt:gngch) |> 
-  janitor::clean_names() |>
-  mutate(dif_ndt = abs(nfdt_habituelle - nfdt_interface_vitre)) |>
-  mutate(dif_ngch = abs(nfgch_habituelle - nfgch_interface_vitre)) |>
-  mutate(dif_gdt = abs(gndt_habituelle - gndt_interface_vitre)) |>
-  mutate(dif_ngch = abs(gngch_habituelle - gngch_interface_vitre)) 
+hh <- dg |> 
+  dplyr::filter(technique == "Habituelle") |> 
+  dplyr::select(nerf) |> 
+  rename(habituel = nerf)
+nn <- dg |> 
+  dplyr::filter(technique != "Habituelle") |> 
+  dplyr::select(nerf) |> 
+   rename(interface = nerf)
+#
+w <- tibble(hh,nn) |> 
+mutate(difx = habituel-interface) |>
+  drop_na(difx) 
 
-nom <- str_split_fixed(zz$coupe2,pattern = "_",n = 2)
-nom <- rep(nom[,2],2)
-dnf <- c(zz$dif_ndt, zz$dif_ngch)
-dgn <- c(zz$dif_gdt, zz$dif_ngch)
-zz <- tibble(nom,dnf,dgn) 
-var_label(zz) <- c("Nom","Nerf optique", "Gaine du nerf optique")
-zz |> 
-  tbl_summary(by = nom,
-              type = everything() ~ "continuous2",
-    statistic = all_continuous() ~ c(
-      "{mean} ± {sd}",
-      "{min}, {max}"
-  )) |> 
-#  add_ci() |> 
-  add_p() |> 
-  modify_header(label = "**Différence selon la méthode**") |> 
-      add_overall(col_label = "**Total**") |> 
-    bold_labels() |>
-    bold_p() |> 
-  pexptabph(exp = expx, nomfich = classeur, nomsheet = "tech1", lg = FALSE)
+w |> 
+  ggplot() +
+  aes(x = habituel, y = difx) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dotdash", linewidth = 0.5,
+             color = "grey50") +
+  labs(title = "Diamètre du nerf optique",
+      subtitle = "mm",
+      x = "mesure habituelle",
+      y = "Différence habituel - mesure à l'interface",
+      caption = "",
+      fill = "") +
+  theme_light() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(
+      size = 12,
+      angle = 90,
+      vjust = .5
+    ),
+  axis.text.x = element_text(size = 12),
+  axis.text.y = element_text(size = 12),
+  legend.position = "right"
+  )
+
+
 ```
-
-
-
 
 :::
