@@ -1,5 +1,5 @@
 ---
-subtitle: "Double lecture & technique V0.2 -- DONNÉES INCOMPLÈTES"
+subtitle: "Double lecture & technique V0.3 -- Données incomplètes"
 cache: false
 ---
 ::: panel-tabset
@@ -11,6 +11,7 @@ library("tidyverse")
 library("janitor")
 library("labelled")
 library("baseph")
+library("plotly")
 library("gtsummary")
 #
 load("datas/dlect.RData")
@@ -75,7 +76,7 @@ zz |>
 ```
 
 ::: {.callout-warning}
-La colonne **Total** est fausse. 
+La colonne **Total** est (provisoirement) fausse. 
 :::
 
 ## ICC
@@ -145,7 +146,7 @@ dg |>
                 "{mean} ± {sd}",
                 "{min}, {max}"),, 
               missing = "no")|>
-  modify_spanning_header(c("stat_1", "stat_2") ~ "**Nerf optique**") |>
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Technique de mesure**") |>
   add_p(
     test = list(all_continuous() ~ "paired.t.test"),
     group = id
@@ -156,10 +157,10 @@ dg |>
   pexptabph(exp = expx, nomfich = classeur, nomsheet = "diftech", lg = FALSE)
 ```
 
-Pour la mesure du diamètre du nerf optique, la mesure par la technique *habituelle* est systématiquement plus haute que par la technique *Interface vitrée*. 
+Pour la mesure du diamètre du nerf optique, la mesure par la technique *habituelle* est systématiquement plus haute (d'environ 0,2 mm) que par la technique *Interface vitrée*. Pour la mesure de la gaine du nerf optique les deux méthodes donnent des résultats très proches. Dans les deux cas, dispersions des mesures est la même, c'est à dire la qualité des mesures est la même. 
 
 ```{r}
-#| label: fig-techbland
+#| label: fig-techbland-nerf
 #| fig-cap: Comparaison des deux techniques (nerf)
 
 hh <- dg |> 
@@ -171,20 +172,18 @@ nn <- dg |>
   dplyr::select(nerf) |> 
    rename(interface = nerf)
 #
-w <- tibble(hh,nn) |> 
+ff <- tibble(hh,nn) |> 
 mutate(difx = habituel-interface) |>
-  drop_na(difx) 
-
-w |> 
+  drop_na(difx) |> 
   ggplot() +
   aes(x = habituel, y = difx) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = "dotdash", linewidth = 0.5,
              color = "grey50") +
   labs(title = "Diamètre du nerf optique",
-      subtitle = "mm",
-      x = "mesure habituelle",
-      y = "Différence habituel - mesure à l'interface",
+      subtitle = "Diagramme de Bland-Altman",
+      x = "mesure habituelle (mm)",
+      y = "Dmesure habituelle - mesure à l'interface",
       caption = "",
       fill = "") +
   theme_light() +
@@ -203,7 +202,52 @@ w |>
   legend.position = "right"
   )
 
-
+ggplotly(ff)
 ```
 
+```{r}
+#| label: fig-techbland-gaine
+#| fig-cap: Comparaison des deux techniques (gaine du nerf)
+
+hh <- dg |> 
+  dplyr::filter(technique == "Habituelle") |> 
+  dplyr::select(gaine) |> 
+  rename(habituel = gaine)
+nn <- dg |> 
+  dplyr::filter(technique != "Habituelle") |> 
+  dplyr::select(gaine) |> 
+   rename(interface = gaine)
+#
+ff <- tibble(hh,nn) |> 
+mutate(difx = habituel-interface) |>
+  drop_na(difx) |> 
+  ggplot() +
+  aes(x = habituel, y = difx) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dotdash", linewidth = 0.5,
+             color = "grey50") +
+  labs(title = "Diamètre de la gaine du nerf optique",
+      subtitle = "Diagramme de Bland-Altman",
+      x = "mesure habituelle (mm)",
+      y = "mesure habituelle - mesure à l'interface",
+      caption = "",
+      fill = "") +
+  theme_light() +
+  theme(
+    plot.title = element_text(size = 14, face = "bold"),
+    plot.subtitle = element_text(size = 12),
+    axis.title.x = element_text(size = 12),
+    legend.title = element_text(size = 12),
+    axis.title.y = element_text(
+      size = 12,
+      angle = 90,
+      vjust = .5
+    ),
+  axis.text.x = element_text(size = 12),
+  axis.text.y = element_text(size = 12),
+  legend.position = "right"
+  )
+
+ggplotly(ff)
+```
 :::
