@@ -1,0 +1,157 @@
+---
+subtitle: "Validation des lecteurs V1.1"
+format: html
+cache: false
+prefer-html: true
+---
+::: panel-tabset
+
+# Introduction
+
+::: {.callout-tip title="Évaluation de la gaine du nerf optique par échographie dans l'Artérite à Cellules géantes"}
+
+Recherche non interventionnelle ne comportant aucun risque ni contrainte
+
+Étude diagnostique non interventionnelle, prospective multicentrique
+
+
+
+**Investigateur Coordonnateur** <br>Omar AL TABAA --- Rhumatologie 
+Hôpital NOVO (Site de Pontoise)
+
+**Comité scientifique**<br>
+Maxime SANSOM --- Service de médecine interne CHU Dijon<br>
+Sébastien OTTAVIANI --- Service de rhumatologie hôpital Bichat
+(Paris)<br>
+Olivier ESPITIA --- Service de médecine vasculaire CHU Nantes
+
+**Chef de projet** <br>Mathilde WLODARCZYK
+
+**Méthodologiste**<br> Chrystelle VIDAL --- GIRCI Île de France
+
+**Data-manager**<br>Nathanaël CHARRIER
+
+**Statisticien**<br>Philippe MICHEL
+:::
+
+
+```{r}
+#| label: setup
+
+rm(list = ls())
+#
+library("tidyverse")
+library("janitor")
+library("labelled")
+library("baseph")
+library("readODS")
+library("plotly")
+library("gtsummary")
+#
+
+
+classeur <- "double_lecture.ods"
+expx <- FALSE
+if (expx) {
+  file.create(classeur)
+  file.remove(classeur)
+  write_ods(iris, classeur)
+}
+
+# sessionInfo()
+theme_gtsummary_language(language = "fr", decimal.mark = ",",  big.mark = " " )
+#theme_gtsummary_journal(journal = "jama")
+options(OutDec = ",")
+ptest <- list(all_continuous() ~ "t.test", all_categorical() ~ "chisq.test")
+ptest2 <- list(all_continuous() ~ "paired.t.test", all_categorical() ~ "chisq.test")
+stt <- list(
+  all_continuous() ~ "{mean} ({sd})",
+  all_categorical() ~ "{n}/{N} ({p}%)"
+)
+
+```
+
+```{r}
+#| label: import-data
+
+# Nombre de feuilles - À remplir !!!!
+nsh <- 2
+#
+import_val <- function(sh) {
+  nom <- read_ods("datas/validation.ods", sheet = sh, range = "C4:C5", col_names = FALSE)
+  lect <- read_ods("datas/validation.ods", sheet = sh, range = "B11:E22", col_names = FALSE)
+  exp <- read_ods("datas/validation.ods", sheet = sh, range = "R11:U22", col_names = FALSE)
+   dif <- abs(lect - exp)
+  names(dif)[1:4] <- c("nf_dt", "gn_dt", "nf_gch", "gn_gch")
+  #
+  nf <- c(dif$nf_dt, dif$nf_gch)
+  gn <- c(dif$gn_dt, dif$gn_gch)
+  nom <- rep(paste0(nom[1, 1], " (c", nom[2, 1], ")"), length(nf))
+  ll <- tibble(nom = nom, nerf = nf, gaine = gn)
+  return(ll)
+}
+#
+val <- NULL
+for (sh in 1:nsh) {
+  ll <- import_val(sh)
+  val <- bind_rows(val, ll)
+}
+#
+var_label(val$nom) <- "Lecteur"
+var_label(val$nerf) <- "Nerf optique (mm)"
+var_label(val$gaine) <- "Gaine du nerf optique (mm)"
+
+save(val, file = "datas/validation.RData")
+load("datas/validation.RData")
+```
+
+```{r}
+#| label: erreur
+
+val <- val |> 
+  mutate(er_nf = ifelse(nerf >= 1, "Erreur", "Correct")) |> 
+  mutate(er_gn = ifelse(gaine >= 1, "Erreur", "Correct")) |> 
+  mutate(erreur = ifelse(er_nf == "Erreur" | er_gn == "Erreur", "Erreur", "Correct")) |> 
+  mutate(across(c(er_nf, er_gn, erreur), as.factor))
+var_label(val$er_nf) <- "Nerf optique"
+var_label(val$er_gn) <- "Gaine du nerf optique"
+var_label(val$erreur) <- "Total"
+
+```
+
+# Validation
+
+Pour chaque lecteur on donne le nombre d'erreurs sur le nerf optique, la gaine du nerf optique et les deux. 
+
+On considère qu'il y a une erreur si la différence entre la moyenne des mesures des trois experts et la mesure du lecteur est supérieure ou égale à 1 mm.
+
+```{r}
+#| label: tbl-validation1
+#| tbl-cap: "Validation des lecteurs - nombre d'erreurs"
+val |> 
+  dplyr::select(nom, er_nf, er_gn, erreur) |>
+  pivot_longer(cols = c(er_nf,er_gn, erreur),
+               names_to = "type",
+               values_to = "valeur") |> 
+  dplyr::filter(valeur == "Erreur") |> 
+  mutate (type = fct_recode(type,
+    "Gaine du nerf optique" = "er_gn",
+    "Nerf optique" = "er_nf",
+    "Total" = "erreur"
+  )) |> 
+  tbl_summary(
+    by = type,
+    include = -valeur,
+    statistic = all_categorical() ~ "{n} / 12",
+    missing = "no"
+  ) |>   
+  modify_header(all_stat_cols() ~ "**{level}**") |>
+    modify_header(label ~ "Nombre d'erreurs") |>
+bold_labels() |>
+    modify_spanning_header(c("stat_1", "stat_2") ~ "**Mesure**") |>
+pexptabph(nomfich = classeur,
+nomsheet = "validation1",
+exp = expx)
+```
+
+:::

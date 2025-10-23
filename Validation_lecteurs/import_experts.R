@@ -21,7 +21,7 @@ tt <- read_ods("./datas/doublelect.ods", na = c("", " ", "NA")) |>
 bn <- read_ods("./datas/doublelect.ods", sheet = "bnom", na = c("", " ", "NA"))
 var_label(tt) <- bn$bnom
 
-tc <- read_ods("./datas/technique.ods", sheet = "techniques", na = c("", " ", "NA")) |>
+tc <- read_ods("./datas/technique.ods", sheet = "techniques", na = c("", " ", "NA", "ND")) |>
   clean_names() |>
   mutate(across(where(is.character), as.factor))
 
