@@ -48,7 +48,7 @@ library("gtsummary")
 load("datas/dlect.RData")
 
 classeur <- "double_lecture.ods"
-expx <- TRUE
+expx <- FALSE
 if (expx) {
   file.create(classeur)
   file.remove(classeur)
@@ -106,6 +106,9 @@ zz |>
     bold_p() |> 
   pexptabph(exp = expx, nomfich = classeur, nomsheet = "dif1", lg = FALSE)
 ```
+
+Il n'y a aps de différence significative entre les mesures des trois experts. 
+
 
 ## Mesures abberrantes
 
@@ -213,14 +216,13 @@ lect <- c(tc$expert,tc$expert)
 gaine <- c(tc$gndt, tc$gndt)
 id <- c(paste0(tc$id,"a"), paste0(tc$id,"b"))
 zzg <- tibble(id = id,technique=tec, expert=lect, gaine=gaine) |> 
-  dplyr::select( -expert) |> 
   pivot_wider(names_from = technique, values_from = gaine) |> 
   drop_na(Habituelle,`Interface vitré`) |> 
   pivot_longer(cols = c(Habituelle,`Interface vitré`), names_to = "technique",
                values_to = "gaine") 
 
 zzg |> 
-  tbl_summary(by = technique, include = -id,
+  tbl_summary(by = technique, include = -c(id, expert),
               type = all_continuous() ~ "continuous2",
                   statistic = all_continuous() ~ c(
       "{mean} ± {sd}",
@@ -236,7 +238,7 @@ zzg |>
   pexptabph(exp = expx, nomfich = classeur, nomsheet = "diftechgn")
 ```
 
-Pour la mesure du diamètre du nerf optique comme de la gaine, la mesure par la technique *habituelle* est systématiquement plus haute (d'environ 0,2 mm) que par la technique *Interface vitrée*. 
+Pour la mesure du diamètre du nerf optique comme de la gaine, la mesure par la technique *habituelle* est systématiquement plus haute (d'environ 0,2 mm) que par la technique *Interface vitrée*. Par contre la dispersion est la même, aucune des deux techniques ne semble donc avoir de meilleurs résultats. 
 
 ```{r}
 #| label: fig-techbland-nerf
@@ -310,4 +312,5 @@ ff <- zzg |>
 
 ggplotly(ff)
 ```
+
 :::
